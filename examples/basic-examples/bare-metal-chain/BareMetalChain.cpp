@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
     simulation.init(&argc, argv);
 
     /* Parsing of the command-line arguments for this WRENCH simulation */
-    if (argc != 3) {
+    if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " <number of tasks> <xml platform file> [--log=custom_wms.threshold=info]" << std::endl;
         exit(1);
     }
@@ -81,13 +81,13 @@ int main(int argc, char **argv) {
     /* Add workflow tasks */
     for (int i=0; i < num_tasks; i++) {
         /* Create a task: 10GFlop, 1 to 10 cores, 0.90 parallel efficiency, 10MB memory footprint */
-        auto task = workflow.addTask("task_" + std::to_string(i), 10000000000.0, 1, 10, 0.90, 10000000);
+        auto task = workflow.addTask("task_" + std::to_string(i), 280000000000.0, 1, 10, 0.90, 20000000000);
     }
 
     /* Add workflow files */
     for (int i=0; i < num_tasks+1; i++) {
         /* Create a 100MB file */
-        workflow.addFile("file_" + std::to_string(i), 100000000);
+        workflow.addFile("file_" + std::to_string(i), 20000000000);
     }
 
     /* Set input/output files for each task */
@@ -107,24 +107,24 @@ int main(int argc, char **argv) {
      * in this storage service, and accessed remotely by the compute service. Note that the
      * storage service is configured to use a buffer size of 50M when transferring data over
      * the network (i.e., to pipeline disk reads/writes and network revs/sends). */
-    std::cerr << "Instantiating a SimpleStorageService on WMSHost..." << std::endl;
+    std::cerr << "Instantiating a SimpleStorageService on host01..." << std::endl;
     auto storage_service = simulation.add(new wrench::SimpleStorageService(
-            "WMSHost", {"/"}, {{wrench::SimpleStorageServiceProperty::BUFFER_SIZE, "50000000"}}, {}));
+            "host01", {"/"}, {{wrench::SimpleStorageServiceProperty::BUFFER_SIZE, "50000000"}}, {}));
 
     /* Instantiate a bare-metal compute service, and add it to the simulation.
-     * A wrench::BareMetalComputeService is an abstraction of a compute service that corresponds 
+     * A wrench::BareMetalComputeService is an abstraction of a compute service that corresponds
      * to a software infrastructure that can execute tasks on hardware resources.
      * This particular service is started on ComputeHost and has no scratch storage space (mount point argument = "").
      * This means that tasks running on this service will access data only from remote storage services. */
     std::cerr << "Instantiating a BareMetalComputeService on ComputeHost..." << std::endl;
     auto baremetal_service = simulation.add(new wrench::BareMetalComputeService(
-            "ComputeHost", {"ComputeHost"}, "", {}, {}));
+            "host01", {"host01"}, "", {}, {}));
 
     /* Instantiate a WMS, to be stated on WMSHost, which is responsible
      * for executing the workflow. */
 
     auto wms = simulation.add(
-            new wrench::OneTaskAtATimeWMS({baremetal_service}, {storage_service}, "WMSHost"));
+            new wrench::OneTaskAtATimeWMS({baremetal_service}, {storage_service}, "host01"));
 
     /* Associate the workflow to the WMS */
     wms->addWorkflow(&workflow);
@@ -132,8 +132,8 @@ int main(int argc, char **argv) {
     /* Instantiate a file registry service to be started on WMSHost. This service is
      * essentially a replica catalog that stores <file , storage service> pairs so that
      * any service, in particular a WMS, can discover where workflow files are stored. */
-    std::cerr << "Instantiating a FileRegistryService on WMSHost ..." << std::endl;
-    auto file_registry_service = new wrench::FileRegistryService("WMSHost");
+    std::cerr << "Instantiating a FileRegistryService on host01 ..." << std::endl;
+    auto file_registry_service = new wrench::FileRegistryService("host01");
     simulation.add(file_registry_service);
 
     /* It is necessary to store, or "stage", input files that only input. The getInputFiles()

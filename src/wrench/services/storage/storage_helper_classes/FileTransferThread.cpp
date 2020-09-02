@@ -258,6 +258,17 @@ namespace wrench {
 
         } else {
             /** Non-zero buffer size */
+            if (Simulation::isWriteback()) {
+                long remaining = file->getSize();
+                while (remaining > 0) {
+                    long chunk_size = std::min<long>(this->buffer_size, remaining);
+                    simulation->writeToHost(file, chunk_size, location->getMountPoint(),
+                                            location->getStorageService()->hostname);
+                    remaining -= chunk_size;
+                }
+                return;
+            }
+
 
             bool done = false;
 
@@ -277,9 +288,10 @@ namespace wrench {
                 while (not done) {
                     // Issue the receive
                     auto req = S4U_Mailbox::igetMessage(mailbox);
+
                     // Write to disk
                     simulation->writeToDisk(msg->payload, location->getStorageService()->hostname,
-                                                location->getMountPoint());
+                                            location->getMountPoint());
                     // Wait for the comm to finish
                     msg = req->wait();
                     if (auto file_content_chunk_msg =
@@ -291,9 +303,12 @@ namespace wrench {
                                 msg->getName() + "] message!");
                     }
                 }
+
                 // I/O for the last chunk
+                // Write to disk
                 simulation->writeToDisk(msg->payload, location->getStorageService()->hostname,
-                                            location->getMountPoint());
+                                        location->getMountPoint());
+
             } catch (std::shared_ptr<NetworkError> &e) {
                 throw;
             }
@@ -320,6 +335,16 @@ namespace wrench {
 
         } else {
 
+            if (Simulation::isWriteback()) {
+                long remaining = file->getSize();
+                while (remaining > 0) {
+                    long chunk_size = std::min<long>(this->buffer_size, remaining);
+                    simulation->readFromHost(file, chunk_size, location->getMountPoint(), hostname);
+                    remaining -= chunk_size;
+                }
+                return;
+            }
+
             try {
                 /** Non-zero buffer size */
                 std::shared_ptr<S4U_PendingCommunication> req = nullptr;
@@ -328,10 +353,11 @@ namespace wrench {
 
                 while (remaining > 0) {
                     double chunk_size = std::min<double>(this->buffer_size, remaining);
+
                     WRENCH_INFO("Reading %s bytes from disk", std::to_string(chunk_size).c_str());
                     simulation->readFromDisk(chunk_size, location->getStorageService()->hostname,
-                                                 location->getMountPoint());
-                    WRENCH_INFO("Read %s bytes from disk", std::to_string(chunk_size).c_str());
+                                             location->getMountPoint());
+
                     remaining -= (double)(this->buffer_size);
                     if (req) {
                         req->wait();

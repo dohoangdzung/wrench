@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid/simgrid.dtd">
+<platform version="4.1">
+    <zone id="AS0" routing="Full">
+        <host id="host01" speed="1Gf" core="32">
+            <prop id="ram" value="268GB"/>
+            <disk id="disk01" read_bw="465MBps" write_bw="465MBps">
+                <prop id="size" value="450GB"/>
+                <prop id="mount" value="/"/>
+            </disk>
+            <disk id="memory" read_bw="3100MBps" write_bw="3100MBps">
+                <prop id="size" value="268GB"/>
+                <prop id="mount" value="/memory"/>
+            </disk>
+        </host>
+    </zone>
+</platform>
