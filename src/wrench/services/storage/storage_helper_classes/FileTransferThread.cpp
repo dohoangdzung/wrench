@@ -258,7 +258,6 @@ namespace wrench {
 
         } else {
             /** Non-zero buffer size */
-
             bool done = false;
 
             // Receive the first chunk
@@ -279,8 +278,7 @@ namespace wrench {
                     auto req = S4U_Mailbox::igetMessage(mailbox);
 
                     if (Simulation::isWriteback()) {
-                        simulation->writeToHost(file, msg->payload, location->getMountPoint(),
-                                location->getStorageService()->hostname);
+                        simulation->writeWithMemoryCache(file, msg->payload, location->getMountPoint());
                     } else {
                         // Write to disk
                         simulation->writeToDisk(msg->payload, location->getStorageService()->hostname,
@@ -301,8 +299,7 @@ namespace wrench {
 
                 // I/O for the last chunk
                 if (Simulation::isWriteback()) {
-                    simulation->writeToHost(file, msg->payload, location->getMountPoint(),
-                                            location->getStorageService()->hostname);
+                    simulation->writeWithMemoryCache(file, msg->payload, location->getMountPoint());
                 } else {
                     // Write to disk
                     simulation->writeToDisk(msg->payload, location->getStorageService()->hostname,
@@ -346,8 +343,7 @@ namespace wrench {
 
                     if (Simulation::isWriteback()) {
                         WRENCH_INFO("Reading %s bytes from host", std::to_string(chunk_size).c_str());
-                        simulation->readFromHost(file, chunk_size, location->getMountPoint(),
-                                location->getStorageService()->hostname);
+                        simulation->readWithMemoryCache(file, chunk_size, location->getMountPoint());
                     } else {
                         WRENCH_INFO("Reading %s bytes from disk", std::to_string(chunk_size).c_str());
                         simulation->readFromDisk(chunk_size, location->getStorageService()->hostname,
