@@ -16,6 +16,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <wrench/services/storage/storage_helpers/FileTransferThread.h>
+#include <wrench/services/memory/MemoryManager.h>
 
 WRENCH_LOG_CATEGORY(wrench_core_file_transfer_thread, "Log category for File Transfer Thread");
 
@@ -273,12 +274,17 @@ namespace wrench {
 
             try {
 
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                }
+
                 // Receive chunks and write them to disk
                 while (not done) {
                     // Issue the receive
                     auto req = S4U_Mailbox::igetMessage(mailbox);
 
                     if (Simulation::isWriteback()) {
+//                        WRENCH_DEBUG("Writing %s bytes to host", std::to_string(msg->payload).c_str());
                         simulation->writeToHost(file, msg->payload, location->getMountPoint(),
                                 location->getStorageService()->hostname);
                     } else {
@@ -301,12 +307,17 @@ namespace wrench {
 
                 // I/O for the last chunk
                 if (Simulation::isWriteback()) {
+                    WRENCH_DEBUG("Writing %s bytes to host", std::to_string(msg->payload).c_str());
                     simulation->writeToHost(file, msg->payload, location->getMountPoint(),
                                             location->getStorageService()->hostname);
                 } else {
                     // Write to disk
                     simulation->writeToDisk(msg->payload, location->getStorageService()->hostname,
                                             location->getMountPoint());
+                }
+
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
                 }
 
             } catch (std::shared_ptr<NetworkError> &e) {
@@ -341,11 +352,15 @@ namespace wrench {
                 // Sending a zero-byte file is really sending a 1-byte file
                 double remaining = std::max<double>(1, file->getSize());
 
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                }
+
                 while (remaining > 0) {
                     double chunk_size = std::min<double>(this->buffer_size, remaining);
 
                     if (Simulation::isWriteback()) {
-                        WRENCH_INFO("Reading %s bytes from host", std::to_string(chunk_size).c_str());
+//                        WRENCH_DEBUG("Reading %s bytes from host", std::to_string(chunk_size).c_str());
                         simulation->readFromHost(file, chunk_size, location->getMountPoint(),
                                 location->getStorageService()->hostname);
                     } else {
@@ -357,13 +372,16 @@ namespace wrench {
                     remaining -= (double)(this->buffer_size);
                     if (req) {
                         req->wait();
-                        WRENCH_INFO("Bytes sent over the network were received");
+//                        WRENCH_INFO("Bytes sent over the network were received");
                     }
-                    WRENCH_INFO("Asynchronously sending %s bytes over the network", std::to_string(chunk_size).c_str());
+//                    WRENCH_INFO("Asynchronously sending %s bytes over the network", std::to_string(chunk_size).c_str());
                     req = S4U_Mailbox::iputMessage(mailbox,
                                                    new StorageServiceFileContentChunkMessage(
                                                            this->file,
                                                            (unsigned long)chunk_size, (remaining <= 0)));
+                }
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
                 }
                 req->wait();
                 WRENCH_INFO("Bytes sent over the network were received");

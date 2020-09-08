@@ -31,7 +31,7 @@
 
 #include <iostream>
 #include <wrench.h>
-
+#include <wrench/services/memory/MemoryManager.h>
 #include "OneTaskAtATimeWMS.h" // WMS implementation
 
 /**
@@ -41,12 +41,48 @@
  * @param argv: argument array
  * @return 0 on success, non-zero otherwise
  */
+
+void export_single_output(wrench::SimulationOutput output, int num_tasks, std::string filename){
+    auto read_start = output.getTrace<wrench::SimulationTimestampFileReadStart>();
+    auto read_end = output.getTrace<wrench::SimulationTimestampFileReadCompletion>();
+    auto write_start = output.getTrace<wrench::SimulationTimestampFileWriteStart>();
+    auto write_end = output.getTrace<wrench::SimulationTimestampFileWriteCompletion>();
+    auto task_start = output.getTrace<wrench::SimulationTimestampTaskStart>();
+    auto task_end = output.getTrace<wrench::SimulationTimestampTaskCompletion>();
+
+    FILE *log_file = fopen(filename.c_str(), "w");
+    fprintf(log_file, "type, start, end\n");
+
+    for (int i = 0; i < num_tasks; i++) {
+//        std::cerr << "Task " << read_end[i]->getContent()->getTask()->getID()
+//                  << " read completed in " << read_end[i]->getDate() - read_start[i]->getDate()
+//                  << std::endl;
+//        std::cerr << "Task " << read_end[i]->getContent()->getTask()->getID()
+//                  << " write completed in " << write_end[i]->getDate() - write_start[i]->getDate()
+//                  << std::endl;
+        std::cerr << "Task " << read_end[i]->getContent()->getTask()->getID()
+                  << " completed at " << task_end[i]->getDate()
+                  << " in " << task_end[i]->getDate() - task_start[i]->getDate()
+                  << std::endl;
+
+
+        fprintf(log_file, "read, %lf, %lf\n", read_start[i]->getDate(), read_end[i]->getDate());
+        fprintf(log_file, "write, %lf, %lf\n", write_start[i]->getDate(), write_end[i]->getDate());
+    }
+
+    fclose(log_file);
+}
+
 int main(int argc, char **argv) {
 
     /*
      * Declare a WRENCH simulation object
      */
     wrench::Simulation simulation;
+
+    long file_size_gb = 75;
+    long mem_req_gb = 75;
+    long cpu_time_sec = 110;
 
     /* Initialize the simulation, which may entail extracting WRENCH-specific and
      * Simgrid-specific command-line arguments that can modify general simulation behavior.
@@ -81,13 +117,14 @@ int main(int argc, char **argv) {
     /* Add workflow tasks */
     for (int i=0; i < num_tasks; i++) {
         /* Create a task: 10GFlop, 1 to 10 cores, 0.90 parallel efficiency, 10MB memory footprint */
-        auto task = workflow.addTask("task_" + std::to_string(i), 280000000000.0, 1, 10, 0.90, 20000000000);
+        auto task = workflow.addTask("task_" + std::to_string(i), cpu_time_sec * 10000000000.0, 1, 10, 0.90,
+                mem_req_gb * 1000000000);
     }
 
     /* Add workflow files */
     for (int i=0; i < num_tasks+1; i++) {
         /* Create a 100MB file */
-        workflow.addFile("file_" + std::to_string(i), 20000000000);
+        workflow.addFile("file_" + std::to_string(i), file_size_gb * 1000000000);
     }
 
     /* Set input/output files for each task */
@@ -154,13 +191,8 @@ int main(int argc, char **argv) {
     }
     std::cerr << "Simulation done!" << std::endl;
 
-    /* Simulation results can be examined via simulation.output, which provides access to traces
-     * of events. In the code below, we print the  retrieve the trace of all task completion events, print how
-     * many such events there are, and print some information for the first such event. */
-    auto trace = simulation.getOutput().getTrace<wrench::SimulationTimestampTaskCompletion>();
-    for (auto const &item : trace) {
-        std::cerr << "Task "  << item->getContent()->getTask()->getID() << " completed at time " << item->getDate()  << std::endl;
-    }
+    export_single_output(simulation.getOutput(), num_tasks, to_string(file_size_gb) + "gb_sim_time.csv");
+    simulation.getMemoryManagerByHost("host01")->export_log(to_string(file_size_gb) + "gb_sim_mem.csv");
 
     return 0;
 }

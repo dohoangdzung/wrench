@@ -26,7 +26,7 @@
 #include <wrench/workflow//failure_causes/NoScratchSpace.h>
 #include "ComputeThread.h"
 #include "wrench/simulation/Simulation.h"
-
+#include <wrench/services/memory/MemoryManager.h>
 #include "wrench/logging/TerminalOutput.h"
 #include <wrench/services/compute/ComputeService.h>
 #include <wrench/workflow/failure_causes/FileNotFound.h>
@@ -284,6 +284,8 @@ namespace wrench {
     void
     WorkunitExecutor::performWork(Workunit *work) {
 
+        double mem_req = 0;
+
         /** Perform all pre file copies operations */
         for (auto file_copy : work->pre_file_copies) {
             WorkflowFile *file = std::get<0>(file_copy);
@@ -351,6 +353,10 @@ namespace wrench {
                 for (auto const &p : files_to_read) {
                     WorkflowFile *f = p.first;
                     std::shared_ptr<FileLocation> l = p.second;
+
+                    if (Simulation::isWriteback()) {
+                        mem_req += f->getSize();
+                    }
 
                     try{
                         this->simulation->getOutput().addTimestampFileReadStart(f, l.get(), l->getStorageService().get(), task);
@@ -476,6 +482,11 @@ namespace wrench {
                     throw;
                 }
             }
+        }
+
+        if (Simulation::isWriteback()) {
+            MemoryManager *mem_mng = simulation->getMemoryManagerByHost(this->getHostname());
+            mem_mng->setFreeMemory(mem_mng->getFreeMemory() + mem_req);
         }
 
     }
