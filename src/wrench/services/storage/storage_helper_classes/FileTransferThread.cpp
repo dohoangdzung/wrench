@@ -276,6 +276,7 @@ namespace wrench {
 
                 if (Simulation::isWriteback()) {
                     simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->fincore();
                 }
 
                 // Receive chunks and write them to disk
@@ -318,6 +319,7 @@ namespace wrench {
 
                 if (Simulation::isWriteback()) {
                     simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->fincore();
                 }
 
             } catch (std::shared_ptr<NetworkError> &e) {
@@ -382,6 +384,7 @@ namespace wrench {
                 }
                 if (Simulation::isWriteback()) {
                     simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->fincore();
                 }
                 req->wait();
                 WRENCH_INFO("Bytes sent over the network were received");

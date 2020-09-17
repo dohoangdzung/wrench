@@ -876,7 +876,7 @@ namespace wrench {
 
         double disk_bw_amt = amount - mem_bw_amt;
         if (disk_bw_amt > 0) {
-            mem_mng->flush(disk_bw_amt, "");
+            double flushed = mem_mng->flush(disk_bw_amt, "");
             mem_mng->evict(disk_bw_amt - mem_mng->getFreeMemory(), "");
 
             mem_mng->writeToCache(file->getID(), mountpoint, std::min(mem_mng->getFreeMemory(), disk_bw_amt));

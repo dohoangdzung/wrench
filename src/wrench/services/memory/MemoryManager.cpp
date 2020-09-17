@@ -515,6 +515,7 @@ namespace wrench {
     void MemoryManager::balanceLruLists() {
 
         double inactive_size = 0;
+        // Calculate size of each list
         for (int i=0; i < inactive_list.size(); i++) {
             inactive_size += inactive_list[i]->getSize();
         }
@@ -524,6 +525,8 @@ namespace wrench {
             active_size += active_list[i]->getSize();
         }
 
+        // Active list should not be large then twice the size of the inactive list
+        // Balance the lists: make their sizes equal
         if (active_size > 2 * inactive_size) {
 
             double to_move_amt = (active_size - inactive_size) / 2;
@@ -651,6 +654,61 @@ namespace wrench {
         }
 
         fclose(log_file);
+    }
+
+    void MemoryManager::fincore(){
+
+        map<std::string, double> inactive_clean_map;
+        map<std::string, double> inactive_dirty_map;
+        map<std::string, double> active_clean_map;
+        map<std::string, double> active_dirty_map;
+        map<std::string, double> dirty_map;
+        map<std::string, double> clean_map;
+        map<std::string, double> cache_map;
+
+        WRENCH_INFO("==========FINCORE============")
+
+        for (auto blk : inactive_list) {
+            cache_map[blk->getFilename()] += blk->getSize();
+            if (blk->isDirty()) {
+                inactive_dirty_map[blk->getFilename()] += blk->getSize();
+            } else {
+                inactive_clean_map[blk->getFilename()] += blk->getSize();
+            }
+        }
+        for (auto const& pair: inactive_clean_map) {
+            WRENCH_INFO("INACTIVE CLEAN CACHED")
+            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
+        }
+
+        for (auto const& pair: inactive_dirty_map) {
+            WRENCH_INFO("INACTIVE DIRTY CACHED")
+            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
+        }
+
+        for (auto blk : active_list) {
+            cache_map[blk->getFilename()] += blk->getSize();
+            if (blk->isDirty()) {
+                active_dirty_map[blk->getFilename()] += blk->getSize();
+            } else {
+                active_clean_map[blk->getFilename()] += blk->getSize();
+            }
+        }
+
+        for (auto const& pair: active_clean_map) {
+            WRENCH_INFO("ACTIVE CLEAN CACHED")
+            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
+        }
+
+        for (auto const& pair: active_dirty_map) {
+            WRENCH_INFO("ACTIVE DIRTY CACHED")
+            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
+        }
+        WRENCH_INFO("==========FINCORE============")
+//        for (auto const& pair: cache_map) {
+//            WRENCH_INFO("FILES CACHED")
+//            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
+//        }
     }
 
 }

@@ -95,6 +95,8 @@ namespace wrench {
 
         void export_log(std::string filename);
 
+        void fincore();
+
     };
 
 }
