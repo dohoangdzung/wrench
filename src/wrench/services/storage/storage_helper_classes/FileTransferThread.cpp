@@ -16,6 +16,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <wrench/services/storage/storage_helpers/FileTransferThread.h>
+#include <wrench/services/memory/MemoryManager.h>
 
 WRENCH_LOG_CATEGORY(wrench_core_file_transfer_thread, "Log category for File Transfer Thread");
 
@@ -272,6 +273,11 @@ namespace wrench {
 
             try {
 
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->fincore();
+                }
+
                 // Receive chunks and write them to disk
                 while (not done) {
                     // Issue the receive
@@ -304,6 +310,11 @@ namespace wrench {
                     // Write to disk
                     simulation->writeToDisk(msg->payload, location->getStorageService()->hostname,
                                             location->getMountPoint());
+                }
+
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->fincore();
                 }
 
             } catch (std::shared_ptr<NetworkError> &e) {
@@ -360,6 +371,10 @@ namespace wrench {
                                                    new StorageServiceFileContentChunkMessage(
                                                            this->file,
                                                            (unsigned long)chunk_size, (remaining <= 0)));
+                }
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->fincore();
                 }
                 req->wait();
                 WRENCH_INFO("Bytes sent over the network were received");
