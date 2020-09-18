@@ -13,5 +13,12 @@
                 <prop id="mount" value="/memory"/>
             </disk>
         </host>
+
+        <link id="loopback" bandwidth="1000EBps" latency="0us"/>
+
+        <route src="host01" dst="host01">
+            <link_ctn id="loopback"/>
+        </route>
+
     </zone>
 </platform>

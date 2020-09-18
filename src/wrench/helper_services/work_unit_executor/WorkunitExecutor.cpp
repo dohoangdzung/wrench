@@ -26,7 +26,7 @@
 #include <wrench/workflow//failure_causes/NoScratchSpace.h>
 #include "ComputeThread.h"
 #include "wrench/simulation/Simulation.h"
-
+#include <wrench/services/memory/MemoryManager.h>
 #include "wrench/logging/TerminalOutput.h"
 #include <wrench/services/compute/ComputeService.h>
 #include <wrench/workflow/failure_causes/FileNotFound.h>

@@ -31,7 +31,7 @@
 
 #include <iostream>
 #include <wrench.h>
-
+#include <wrench/services/memory/MemoryManager.h>
 #include "OneTaskAtATimeWMS.h" // WMS implementation
 
 /**
@@ -48,7 +48,7 @@ wrench::Workflow *workflow_single(int num_tasks, long file_size_gb, long mem_req
 
     /* Add workflow tasks */
     for (int i = 0; i < num_tasks; i++) {
-        auto task = workflow->addTask("task_" + std::to_string(i), cpu_time_sec * 1000000000, 1, 10, 0.90,
+        auto task = workflow->addTask("task_" + std::to_string(i), cpu_time_sec * 1000000000, 1, 1, 0.90,
                                       mem_req_gb * 1000000000);
     }
 
@@ -158,9 +158,9 @@ void export_output_multi(wrench::SimulationOutput output, int num_tasks, std::st
 
 int main(int argc, char **argv) {
 
-    long file_size_gb = 100;
-    long mem_req_gb = 100;
-    double cpu_time_sec = 155;
+    long file_size_gb = 20;
+    long mem_req_gb = 20;
+    double cpu_time_sec = 28;
 
     wrench::Simulation simulation;
     simulation.init(&argc, argv);
@@ -188,7 +188,6 @@ int main(int argc, char **argv) {
 
 //    wrench::Workflow *workflow = workflow_multithread(no_pipelines, 3, 1, cpu_time_sec * 10000000000.0,
 //                                                      file_size_gb * 1000000000, mem_req_gb * 1000000000);
-
 
     std::cerr << "Instantiating a SimpleStorageService on host01..." << std::endl;
     auto storage_service = simulation.add(new wrench::SimpleStorageService(
@@ -231,8 +230,8 @@ int main(int argc, char **argv) {
                   << std::endl;
     }
 
-//    export_output_single(simulation.getOutput(), num_tasks, to_string(file_size_gb) + "gb_sim_time.csv");
-//    simulation.getMemoryManagerByHost("host01")->export_log(to_string(file_size_gb) + "gb_sim_mem.csv");
+    export_output_single(simulation.getOutput(), 3, "2nd/" + to_string(file_size_gb) + "gb_sim_time.csv");
+    simulation.getMemoryManagerByHost("host01")->export_log("2nd/" + to_string(file_size_gb) + "gb_sim_mem.csv");
 
 //    simulation.getOutput().dumpUnifiedJSON(workflow, "multi/original/dump_" + to_string(no_pipelines) + ".json");
 //    export_output_multi(simulation.getOutput(), workflow->getNumberOfTasks(),
