@@ -487,7 +487,7 @@ namespace wrench {
 
         if (Simulation::isWriteback()) {
             MemoryManager *mem_mng = simulation->getMemoryManagerByHost(this->getHostname());
-            mem_mng->releaseMemory(mem_mng->getFreeMemory() + mem_req);
+            mem_mng->releaseMemory(mem_req);
         }
 
     }

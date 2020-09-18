@@ -158,9 +158,9 @@ void export_output_multi(wrench::SimulationOutput output, int num_tasks, std::st
 
 int main(int argc, char **argv) {
 
-    long file_size_gb = 20;
-    long mem_req_gb = 20;
-    double cpu_time_sec = 28;
+    long file_size_gb = 100;
+    long mem_req_gb = 100;
+    double cpu_time_sec = 155;
 
     wrench::Simulation simulation;
     simulation.init(&argc, argv);
@@ -233,9 +233,9 @@ int main(int argc, char **argv) {
     export_output_single(simulation.getOutput(), 3, "2nd/" + to_string(file_size_gb) + "gb_sim_time.csv");
     simulation.getMemoryManagerByHost("host01")->export_log("2nd/" + to_string(file_size_gb) + "gb_sim_mem.csv");
 
-//    simulation.getOutput().dumpUnifiedJSON(workflow, "multi/original/dump_" + to_string(no_pipelines) + ".json");
-//    export_output_multi(simulation.getOutput(), workflow->getNumberOfTasks(),
-//            "timestamp_multi_sim_.csv");
+    simulation.getOutput().dumpUnifiedJSON(workflow, "multi/original/dump_" + to_string(no_pipelines) + ".json");
+    export_output_multi(simulation.getOutput(), workflow->getNumberOfTasks(),
+            "timestamp_multi_sim_.csv");
 
     return 0;
 }
