@@ -42,16 +42,41 @@
  * @return 0 on success, non-zero otherwise
  */
 
-wrench::Workflow* workflow_exp2(int num_pipes, int num_tasks, int core_per_task,
-                                long flops, long file_size, long mem_required) {
+wrench::Workflow *workflow_single(int num_tasks, long file_size_gb, long mem_req_gb, double cpu_time_sec) {
 
-    wrench::Workflow* workflow = new wrench::Workflow();
+    wrench::Workflow *workflow = new wrench::Workflow();
+
+    /* Add workflow tasks */
+    for (int i = 0; i < num_tasks; i++) {
+        auto task = workflow->addTask("task_" + std::to_string(i), cpu_time_sec * 1000000000, 1, 10, 0.90,
+                                      mem_req_gb * 1000000000);
+    }
+
+    /* Add workflow files */
+    for (int i = 0; i < num_tasks + 1; i++) {
+        workflow->addFile("file_" + std::to_string(i), file_size_gb * 1000000000);
+    }
+
+    /* Set input/output files for each task */
+    for (int i = 0; i < num_tasks; i++) {
+        auto task = workflow->getTaskByID("task_" + std::to_string(i));
+        task->addInputFile(workflow->getFileByID("file_" + std::to_string(i)));
+        task->addOutputFile(workflow->getFileByID("file_" + std::to_string(i + 1)));
+    }
+
+    return workflow;
+}
+
+wrench::Workflow *workflow_multithread(int num_pipes, int num_tasks, int core_per_task,
+                                       long flops, long file_size, long mem_required) {
+
+    wrench::Workflow *workflow = new wrench::Workflow();
 
     for (int i = 0; i < num_pipes; i++) {
 
         /* Add workflow tasks */
         for (int j = 0; j < num_tasks; j++) {
-            /* Create a task: 10GFlop, single core */
+            /* Create a task: 1GFlop, single core */
             auto task = workflow->addTask("task_" + std::to_string(i) + "_" + std::to_string(j),
                                           flops, 1, core_per_task, 1, mem_required);
         }
@@ -74,7 +99,7 @@ wrench::Workflow* workflow_exp2(int num_pipes, int num_tasks, int core_per_task,
     return workflow;
 }
 
-void export_single_output(wrench::SimulationOutput output, int num_tasks, std::string filename){
+void export_output_single(wrench::SimulationOutput output, int num_tasks, std::string filename) {
     auto read_start = output.getTrace<wrench::SimulationTimestampFileReadStart>();
     auto read_end = output.getTrace<wrench::SimulationTimestampFileReadCompletion>();
     auto write_start = output.getTrace<wrench::SimulationTimestampFileWriteStart>();
@@ -105,7 +130,7 @@ void export_single_output(wrench::SimulationOutput output, int num_tasks, std::s
     fclose(log_file);
 }
 
-void export_output_exp2(wrench::SimulationOutput output, int num_tasks, std::string filename){
+void export_output_multi(wrench::SimulationOutput output, int num_tasks, std::string filename) {
     auto read_start = output.getTrace<wrench::SimulationTimestampFileReadStart>();
     auto read_end = output.getTrace<wrench::SimulationTimestampFileReadCompletion>();
     auto write_start = output.getTrace<wrench::SimulationTimestampFileWriteStart>();
@@ -141,7 +166,8 @@ int main(int argc, char **argv) {
     simulation.init(&argc, argv);
 
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <number of tasks> <xml platform file> [--log=custom_wms.threshold=info]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <number of tasks> <xml platform file> [--log=custom_wms.threshold=info]"
+                  << std::endl;
         exit(1);
     }
 
@@ -149,46 +175,20 @@ int main(int argc, char **argv) {
     simulation.instantiatePlatform(argv[2]);
 
 
-//    int no_pipelines = 0;
-//    try {
-//        no_pipelines = std::atoi(argv[1]);
-//    } catch (std::invalid_argument &e) {
-//        std::cerr << "Invalid number of pipelines\n";
-//        exit(1);
-//    }
-
-    /* Declare a workflow */
-//    wrench::Workflow* workflow = workflow_exp2(no_pipelines, 3, 1, cpu_time_sec * 10000000000.0,
-//            file_size_gb * 1000000000, mem_req_gb * 1000000000);
-
-    /* Parse the first command-line argument (number of tasks) */
-    int num_tasks = 0;
+    int no_pipelines = 0;
     try {
-        num_tasks = std::atoi(argv[1]);
+        no_pipelines = std::atoi(argv[1]);
     } catch (std::invalid_argument &e) {
-        std::cerr << "Invalid number of tasks\n";
+        std::cerr << "Invalid number of pipelines\n";
         exit(1);
     }
 
-    wrench::Workflow workflow;
-    /* Add workflow tasks */
-    for (int i=0; i < num_tasks; i++) {
-        /* Create a task: 10GFlop, 1 to 10 cores, 0.90 parallel efficiency, 10MB memory footprint */
-        auto task = workflow.addTask("task_" + std::to_string(i), 280000000000.0, 1, 10, 0.90, 20000000000);
-    }
+    /* Declare a workflow */
+    wrench::Workflow *workflow = workflow_single(3, file_size_gb, mem_req_gb, cpu_time_sec);
 
-    /* Add workflow files */
-    for (int i=0; i < num_tasks+1; i++) {
-        /* Create a 100MB file */
-        workflow.addFile("file_" + std::to_string(i), 20000000000);
-    }
+//    wrench::Workflow *workflow = workflow_multithread(no_pipelines, 3, 1, cpu_time_sec * 10000000000.0,
+//                                                      file_size_gb * 1000000000, mem_req_gb * 1000000000);
 
-    /* Set input/output files for each task */
-    for (int i=0; i < num_tasks; i++) {
-        auto task = workflow.getTaskByID("task_" + std::to_string(i));
-        task->addInputFile(workflow.getFileByID("file_" + std::to_string(i)));
-        task->addOutputFile(workflow.getFileByID("file_" + std::to_string(i + 1)));
-    }
 
     std::cerr << "Instantiating a SimpleStorageService on host01..." << std::endl;
     auto storage_service = simulation.add(new wrench::SimpleStorageService(
@@ -201,14 +201,14 @@ int main(int argc, char **argv) {
     auto wms = simulation.add(
             new wrench::OneTaskAtATimeWMS({baremetal_service}, {storage_service}, "host01"));
 
-    wms->addWorkflow(&workflow);
+    wms->addWorkflow(workflow);
 
     std::cerr << "Instantiating a FileRegistryService on host01 ..." << std::endl;
     auto file_registry_service = new wrench::FileRegistryService("host01");
     simulation.add(file_registry_service);
 
     std::cerr << "Staging task input files..." << std::endl;
-    for (auto const &f : workflow.getInputFiles()) {
+    for (auto const &f : workflow->getInputFiles()) {
         simulation.stageFile(f, storage_service);
     }
 
@@ -227,14 +227,15 @@ int main(int argc, char **argv) {
      * many such events there are, and print some information for the first such event. */
     auto trace = simulation.getOutput().getTrace<wrench::SimulationTimestampTaskCompletion>();
     for (auto const &item : trace) {
-        std::cerr << "Task "  << item->getContent()->getTask()->getID() << " completed at time " << item->getDate()  << std::endl;
+        std::cerr << "Task " << item->getContent()->getTask()->getID() << " completed at time " << item->getDate()
+                  << std::endl;
     }
 
-    //    export_single_output(simulation.getOutput(), num_tasks, to_string(file_size_gb) + "gb_sim_time.csv");
+//    export_output_single(simulation.getOutput(), num_tasks, to_string(file_size_gb) + "gb_sim_time.csv");
 //    simulation.getMemoryManagerByHost("host01")->export_log(to_string(file_size_gb) + "gb_sim_mem.csv");
 
 //    simulation.getOutput().dumpUnifiedJSON(workflow, "multi/original/dump_" + to_string(no_pipelines) + ".json");
-//    export_output_exp2(simulation.getOutput(), workflow->getNumberOfTasks(),
+//    export_output_multi(simulation.getOutput(), workflow->getNumberOfTasks(),
 //            "timestamp_multi_sim_.csv");
 
     return 0;
