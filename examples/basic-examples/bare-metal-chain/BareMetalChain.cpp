@@ -48,7 +48,7 @@ wrench::Workflow *workflow_single(int num_tasks, long file_size_gb, long mem_req
 
     /* Add workflow tasks */
     for (int i = 0; i < num_tasks; i++) {
-        auto task = workflow->addTask("task_" + std::to_string(i), cpu_time_sec * 1000000000, 1, 1, 0.90,
+        auto task = workflow->addTask("task_" + std::to_string(i), cpu_time_sec * 1000000000, 1, 1,
                                       mem_req_gb * 1000000000);
     }
 
@@ -78,7 +78,7 @@ wrench::Workflow *workflow_multithread(int num_pipes, int num_tasks, int core_pe
         for (int j = 0; j < num_tasks; j++) {
             /* Create a task: 1GFlop, single core */
             auto task = workflow->addTask("task_" + std::to_string(i) + "_" + std::to_string(j),
-                                          flops, 1, core_per_task, 1, mem_required);
+                                          flops, 1, core_per_task, mem_required);
         }
 
         /* Add workflow files */
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 
     simulation.getOutput().dumpUnifiedJSON(workflow, "multi/original/dump_" + to_string(no_pipelines) + ".json");
     export_output_multi(simulation.getOutput(), workflow->getNumberOfTasks(),
-            "timestamp_multi_sim_.csv");
+                        "timestamp_multi_sim_.csv");
 
     return 0;
 }
