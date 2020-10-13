@@ -69,7 +69,6 @@ wrench::Workflow *workflow_single(int num_tasks, long file_size_gb, long mem_req
 
 wrench::Workflow *workflow_multithread(int num_pipes, int num_tasks, int core_per_task,
                                        long flops, long file_size, long mem_required) {
-
     wrench::Workflow *workflow = new wrench::Workflow();
 
     for (int i = 0; i < num_pipes; i++) {
@@ -111,12 +110,6 @@ void export_output_single(wrench::SimulationOutput output, int num_tasks, std::s
     fprintf(log_file, "type, start, end\n");
 
     for (int i = 0; i < num_tasks; i++) {
-//        std::cerr << "Task " << read_end[i]->getContent()->getTask()->getID()
-//                  << " read completed in " << read_end[i]->getDate() - read_start[i]->getDate()
-//                  << std::endl;
-//        std::cerr << "Task " << read_end[i]->getContent()->getTask()->getID()
-//                  << " write completed in " << write_end[i]->getDate() - write_start[i]->getDate()
-//                  << std::endl;
         std::cerr << "Task " << read_end[i]->getContent()->getTask()->getID()
                   << " completed at " << task_end[i]->getDate()
                   << " in " << task_end[i]->getDate() - task_start[i]->getDate()
@@ -158,22 +151,20 @@ void export_output_multi(wrench::SimulationOutput output, int num_tasks, std::st
 
 int main(int argc, char **argv) {
 
-    long file_size_gb = 100;
-    long mem_req_gb = 100;
-    double cpu_time_sec = 155;
+    int num_task = 3;
 
     wrench::Simulation simulation;
     simulation.init(&argc, argv);
 
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <number of tasks> <xml platform file> [--log=custom_wms.threshold=info]"
+    if (argc < 5) {
+        std::cerr << "Usage: " << argv[0]
+                  << " <num_tasks> <file_size_gb> <cpu_time_sec> <xml_platform_file> [--log=custom_wms.threshold=info]"
                   << std::endl;
         exit(1);
     }
 
     std::cerr << "Instantiating simulated platform..." << std::endl;
-    simulation.instantiatePlatform(argv[2]);
-
+    simulation.instantiatePlatform(argv[4]);
 
     int no_pipelines = 0;
     try {
@@ -183,15 +174,30 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    /* Declare a workflow */
-    wrench::Workflow *workflow = workflow_single(3, file_size_gb, mem_req_gb, cpu_time_sec);
+    long file_size_gb = 0;
+    try {
+        file_size_gb = std::atoi(argv[2]);
+    } catch (std::invalid_argument &e) {
+        std::cerr << "Invalid file size\n";
+        exit(1);
+    }
+    long mem_req_gb = file_size_gb;
 
-//    wrench::Workflow *workflow = workflow_multithread(no_pipelines, 3, 1, cpu_time_sec * 10000000000.0,
-//                                                      file_size_gb * 1000000000, mem_req_gb * 1000000000);
+    double cpu_time_sec = 0;
+    try {
+        cpu_time_sec = std::atof(argv[3]);
+    } catch (std::invalid_argument &e) {
+        std::cerr << "Invalid cpu time\n";
+        exit(1);
+    }
+
+    /* Declare a workflow */
+    wrench::Workflow *workflow = workflow_multithread(no_pipelines, num_task, 1, cpu_time_sec * 1000000000,
+                                                   file_size_gb * 1000000000, mem_req_gb * 1000000000);
 
     std::cerr << "Instantiating a SimpleStorageService on host01..." << std::endl;
     auto storage_service = simulation.add(new wrench::SimpleStorageService(
-            "host01", {"/"}, {{wrench::SimpleStorageServiceProperty::BUFFER_SIZE, "50000000"}}, {}));
+            "host01", {"/"}, {{wrench::SimpleStorageServiceProperty::BUFFER_SIZE, "100000000"}}, {}));
 
     std::cerr << "Instantiating a BareMetalComputeService on ComputeHost..." << std::endl;
     auto baremetal_service = simulation.add(new wrench::BareMetalComputeService(
@@ -221,21 +227,33 @@ int main(int argc, char **argv) {
     }
     std::cerr << "Simulation done!" << std::endl;
 
-    /* Simulation results can be examined via simulation.output, which provides access to traces
-     * of events. In the code below, we print the  retrieve the trace of all task completion events, print how
-     * many such events there are, and print some information for the first such event. */
-    auto trace = simulation.getOutput().getTrace<wrench::SimulationTimestampTaskCompletion>();
-    for (auto const &item : trace) {
-        std::cerr << "Task " << item->getContent()->getTask()->getID() << " completed at time " << item->getDate()
-                  << std::endl;
+    std::string sub_dir = "original/";
+    for (int i = 0; i <= argc; i++) {
+        if (not strcmp(argv[i], "--writeback")) {
+            sub_dir = "writeback/";
+            break;
+        }
     }
 
-    export_output_single(simulation.getOutput(), 3, "2nd/" + to_string(file_size_gb) + "gb_sim_time.csv");
-    simulation.getMemoryManagerByHost("host01")->export_log("2nd/" + to_string(file_size_gb) + "gb_sim_mem.csv");
+    bool multi = false;
+    for (int i = 0; i < argc; i++) {
+        if (not strcmp(argv[i], "--multi")) {
+            multi = true;
+            break;
+        }
+    }
 
-    simulation.getOutput().dumpUnifiedJSON(workflow, "multi/original/dump_" + to_string(no_pipelines) + ".json");
-    export_output_multi(simulation.getOutput(), workflow->getNumberOfTasks(),
-                        "timestamp_multi_sim_.csv");
+    if (not multi) {
+        export_output_single(simulation.getOutput(), num_task,
+                             "single/" + sub_dir + to_string(file_size_gb) + "gb_sim_time.csv");
+//        simulation.getMemoryManagerByHost("host01")->export_log(
+//                "single/" + sub_dir + to_string(file_size_gb) + "gb_sim_mem.csv");
+    } else {
+        simulation.getOutput().dumpUnifiedJSON(workflow,
+                                               "multi/" + sub_dir + "/dump_" + to_string(no_pipelines) + ".json");
+        export_output_multi(simulation.getOutput(), workflow->getNumberOfTasks(), "multi/" + sub_dir + "timestamp_multi_sim_.csv");
+//        simulation.getMemoryManagerByHost("host01")->export_log("multi/" + sub_dir + to_string(no_pipelines) + "_sim_mem.csv");
+    }
 
     return 0;
 }

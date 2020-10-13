@@ -8,7 +8,7 @@
                 <prop id="size" value="450GB"/>
                 <prop id="mount" value="/"/>
             </disk>
-            <disk id="memory" read_bw="3100MBps" write_bw="3100MBps">
+            <disk id="memory" read_bw="2765MBps" write_bw="2765MBps">
                 <prop id="size" value="268GB"/>
                 <prop id="mount" value="/memory"/>
             </disk>

@@ -187,6 +187,7 @@ namespace wrench {
         for (auto it = flushing_map.begin(); it != flushing_map.end(); it++) {
             s4u_Disk *disk = getDisk(it->first, this->hostname);
             io_ptrs.push_back(disk->write_async(it->second));
+            disk->write_async(it->second);
         }
 
         for (int i = 0; i < io_ptrs.size(); i++) {
@@ -206,12 +207,22 @@ namespace wrench {
     double MemoryManager::flush(double amount, std::string excluded_filename) {
         if (amount <= 0) return 0;
 
+//        this->log();
         double flushed_inactive = flushLruList(inactive_list, amount, excluded_filename);
 
         double flushed_active = 0;
         if (flushed_inactive < amount) {
             flushed_active = flushLruList(active_list, amount - flushed_inactive, excluded_filename);
         }
+
+        if (flushed_inactive > 0) {
+            WRENCH_INFO("Flushed %lf from inactive list", flushed_inactive)
+        }
+        if (flushed_active > 0) {
+            WRENCH_INFO("Flushed %lf from active list", flushed_active)
+        }
+
+//        this->log();
 
         return flushed_inactive + flushed_active;
     }
@@ -236,7 +247,6 @@ namespace wrench {
 
                 this->dirty -= blk->getSize();
                 flushed += blk->getSize();
-                this->log();
             }
         }
 
@@ -250,10 +260,10 @@ namespace wrench {
      */
     double MemoryManager::pdflush() {
         double flushed = 0;
-        this->log();
+//        this->log();
         flushed += flushExpiredData(inactive_list);
         flushed += flushExpiredData(active_list);
-        this->log();
+//        this->log();
         return flushed;
     }
 
@@ -383,7 +393,7 @@ namespace wrench {
         }
 
         balanceLruLists();
-        this->log();
+//        this->log();
         return this->memory->read_async(clean_reaccessed + dirty_reaccessed);
     }
 
@@ -506,7 +516,7 @@ namespace wrench {
         this->dirty += amount;
 
         memory->write(amount);
-        this->log();
+//        this->log();
     }
 
     bool compare_last_access(Block *blk1, Block *blk2) {
@@ -638,83 +648,83 @@ namespace wrench {
         return nullptr;
     }
 
-    void MemoryManager::log(){
-        this->time_log.push_back(this->simulation->getCurrentSimulatedDate());
-        this->dirty_log.push_back(this->dirty);
-        this->cached_log.push_back(this->cached);
-        this->free_log.push_back(this->free);
-    }
+//    void MemoryManager::log(){
+//        this->time_log.push_back(this->simulation->getCurrentSimulatedDate());
+//        this->dirty_log.push_back(this->dirty);
+//        this->cached_log.push_back(this->cached);
+//        this->free_log.push_back(this->free);
+//    }
+//
+//    void MemoryManager::export_log(std::string filename){
+//        FILE *log_file = fopen(filename.c_str(), "w");
+//        fprintf(log_file, "time, total_mem, dirty, cache, used_mem\n");
+//
+//        double start = this->time_log.at(0);
+//        for (int i=0; i<this->time_log.size(); i++) {
+//            fprintf(log_file, "%lf, %lf, %lf, %lf, %lf\n",
+//                    this->time_log.at(i) - start,
+//                    total / 1000000.0,
+//                    this->dirty_log.at(i) / 1000000.0,
+//                    this->cached_log.at(i) / 1000000.0,
+//                    (total - this->free_log.at(i)) / 1000000.0);
+//        }
+//
+//        fclose(log_file);
+//    }
 
-    void MemoryManager::export_log(std::string filename){
-        FILE *log_file = fopen(filename.c_str(), "w");
-        fprintf(log_file, "time, total_mem, dirty, cache, used_mem\n");
-
-        double start = this->time_log.at(0);
-        for (int i=0; i<this->time_log.size(); i++) {
-            fprintf(log_file, "%lf, %lf, %lf, %lf, %lf\n",
-                    this->time_log.at(i) - start,
-                    total / 1000000.0,
-                    this->dirty_log.at(i) / 1000000.0,
-                    this->cached_log.at(i) / 1000000.0,
-                    (total - this->free_log.at(i)) / 1000000.0);
-        }
-
-        fclose(log_file);
-    }
-
-    void MemoryManager::fincore(){
-
-        map<std::string, double> inactive_clean_map;
-        map<std::string, double> inactive_dirty_map;
-        map<std::string, double> active_clean_map;
-        map<std::string, double> active_dirty_map;
-        map<std::string, double> dirty_map;
-        map<std::string, double> clean_map;
-        map<std::string, double> cache_map;
-
-        WRENCH_INFO("==========FINCORE============")
-
-        for (auto blk : inactive_list) {
-            cache_map[blk->getFileId()] += blk->getSize();
-            if (blk->isDirty()) {
-                inactive_dirty_map[blk->getFileId()] += blk->getSize();
-            } else {
-                inactive_clean_map[blk->getFileId()] += blk->getSize();
-            }
-        }
-        for (auto const& pair: inactive_clean_map) {
-            WRENCH_INFO("INACTIVE CLEAN CACHED")
-            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
-        }
-
-        for (auto const& pair: inactive_dirty_map) {
-            WRENCH_INFO("INACTIVE DIRTY CACHED")
-            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
-        }
-
-        for (auto blk : active_list) {
-            cache_map[blk->getFileId()] += blk->getSize();
-            if (blk->isDirty()) {
-                active_dirty_map[blk->getFileId()] += blk->getSize();
-            } else {
-                active_clean_map[blk->getFileId()] += blk->getSize();
-            }
-        }
-
-        for (auto const& pair: active_clean_map) {
-            WRENCH_INFO("ACTIVE CLEAN CACHED")
-            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
-        }
-
-        for (auto const& pair: active_dirty_map) {
-            WRENCH_INFO("ACTIVE DIRTY CACHED")
-            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
-        }
-        WRENCH_INFO("==========FINCORE============")
-//        for (auto const& pair: cache_map) {
-//            WRENCH_INFO("FILES CACHED")
+//    void MemoryManager::fincore(){
+//
+//        map<std::string, double> inactive_clean_map;
+//        map<std::string, double> inactive_dirty_map;
+//        map<std::string, double> active_clean_map;
+//        map<std::string, double> active_dirty_map;
+//        map<std::string, double> dirty_map;
+//        map<std::string, double> clean_map;
+//        map<std::string, double> cache_map;
+//
+//        WRENCH_INFO("==========FINCORE============")
+//
+//        for (auto blk : inactive_list) {
+//            cache_map[blk->getFileId()] += blk->getSize();
+//            if (blk->isDirty()) {
+//                inactive_dirty_map[blk->getFileId()] += blk->getSize();
+//            } else {
+//                inactive_clean_map[blk->getFileId()] += blk->getSize();
+//            }
+//        }
+//        for (auto const& pair: inactive_clean_map) {
+//            WRENCH_INFO("INACTIVE CLEAN CACHED")
 //            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
 //        }
-    }
+//
+//        for (auto const& pair: inactive_dirty_map) {
+//            WRENCH_INFO("INACTIVE DIRTY CACHED")
+//            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
+//        }
+//
+//        for (auto blk : active_list) {
+//            cache_map[blk->getFileId()] += blk->getSize();
+//            if (blk->isDirty()) {
+//                active_dirty_map[blk->getFileId()] += blk->getSize();
+//            } else {
+//                active_clean_map[blk->getFileId()] += blk->getSize();
+//            }
+//        }
+//
+//        for (auto const& pair: active_clean_map) {
+//            WRENCH_INFO("ACTIVE CLEAN CACHED")
+//            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
+//        }
+//
+//        for (auto const& pair: active_dirty_map) {
+//            WRENCH_INFO("ACTIVE DIRTY CACHED")
+//            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
+//        }
+//        WRENCH_INFO("==========FINCORE============")
+////        for (auto const& pair: cache_map) {
+////            WRENCH_INFO("FILES CACHED")
+////            WRENCH_INFO("%s: %lf", pair.first.c_str(), pair.second / 1000000000);
+////        }
+//    }
 
 }

@@ -771,6 +771,10 @@ namespace wrench {
 
         std::string hostname = getHostName();
 
+        unique_disk_sequence_number += 1;
+        int temp_unique_sequence_number = unique_disk_sequence_number;
+        this->getOutput().addTimestampDiskReadStart(hostname, mountpoint, n_bytes, temp_unique_sequence_number);
+
         MemoryManager *mem_mng = getMemoryManagerByHost(hostname);
         std::vector<Block*> file_blocks = mem_mng->getCachedBlocks(file->getID());
         long cached_amt = 0;
@@ -782,7 +786,7 @@ namespace wrench {
         double from_cache = n_bytes - from_disk;
 
         mem_mng->flush(n_bytes + from_disk - mem_mng->getFreeMemory() - mem_mng->getEvictableMemory(),
-                file->getID());
+                       file->getID());
         mem_mng->evict(n_bytes + from_disk - mem_mng->getFreeMemory(), file->getID());
         if (from_disk > 0) {
             mem_mng->readToCache(file->getID(), mountpoint, from_disk, false);
@@ -794,6 +798,8 @@ namespace wrench {
 
 //        Anonymous used by application
         mem_mng->useAnonymousMemory(n_bytes);
+
+        this->getOutput().addTimestampDiskReadCompletion(hostname, mountpoint, n_bytes, temp_unique_sequence_number);
     }
 
     /**

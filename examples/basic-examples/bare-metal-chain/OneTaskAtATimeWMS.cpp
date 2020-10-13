@@ -67,28 +67,52 @@ namespace wrench {
         /* While the workflow isn't done, repeat the main loop */
         while (not this->getWorkflow()->isDone()) {
 
-            /* Get one ready task */
-            auto ready_task = this->getWorkflow()->getReadyTasks().at(0);
+            std::vector<wrench::WorkflowTask *> ready_tasks = this->getWorkflow()->getReadyTasks();
 
-            /* Create a standard job for the task */
-            WRENCH_INFO("Creating a job for task %s", ready_task->getID().c_str());
+            for (auto ready_task : ready_tasks) {
 
-            /* First, we need to create a map of file locations, stating for each file
-             * where is should be read/written */
-            std::map<WorkflowFile *, std::shared_ptr<FileLocation>> file_locations;
-            file_locations[ready_task->getInputFiles().at(0)] = FileLocation::LOCATION(storage_service);
-            file_locations[ready_task->getOutputFiles().at(0)] = FileLocation::LOCATION(storage_service);
+                /* Create a standard job for the task */
+                WRENCH_INFO("Creating a job for task %s", ready_task->getID().c_str());
 
-            /* Create the job  */
-            auto standard_job = job_manager->createStandardJob(ready_task, file_locations);
+                /* First, we need to create a map of file locations, stating for each file
+                 * where is should be read/written */
+                std::map<WorkflowFile *, std::shared_ptr<FileLocation>> file_locations;
 
-            /* Submit the job to the compute service */
-            WRENCH_INFO("Submitting the job to the compute service");
-            job_manager->submitJob(standard_job, compute_service);
+                for (auto input_file : ready_task->getInputFiles()) {
+                    file_locations[input_file] = FileLocation::LOCATION(storage_service);
+                }
+                for (auto output_file : ready_task->getOutputFiles()) {
+                    file_locations[output_file] = FileLocation::LOCATION(storage_service);
+                }
+
+                std::map<std::string, std::string> compute_args;
+                compute_args[ready_task->getID()] = "1"; // 1 core per task
+
+                /* Create the job  */
+                auto standard_job = job_manager->createStandardJob(ready_task, file_locations);
+
+                // Create service-specific arguments
+                std::map<std::string, std::string> batch_service_args;
+
+                //   The job will run no longer than 1 hour
+                batch_service_args["-t"] = "60";
+
+                //   The job will run on 1 compute node
+                batch_service_args["-N"] = "1";
+
+                //   The job will use 1 core on each compute node
+                batch_service_args["-c"] = "1";
+
+                /* Submit the job to the compute service */
+                WRENCH_INFO("Submitting the job to the compute service");
+                job_manager->submitJob(standard_job, compute_service, compute_args);
+            }
 
             /* Wait for a workflow execution event and process it. In this case we know that
-             * the event will be a StandardJobCompletionEvent, which is processed by the method
-             * processEventStandardJobCompletion() that this class overrides. */
+                 * the event will be a StandardJobCompletionEvent, which is processed by the method
+                 * processEventStandardJobCompletion() that this class overrides. */
+
+//            printf("Wait for events\n\n");
             this->waitForAndProcessNextEvent();
         }
 
