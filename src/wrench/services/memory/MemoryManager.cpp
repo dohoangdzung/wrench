@@ -207,7 +207,7 @@ namespace wrench {
     double MemoryManager::flush(double amount, std::string excluded_filename) {
         if (amount <= 0) return 0;
 
-//        this->log();
+        this->log();
         double flushed_inactive = flushLruList(inactive_list, amount, excluded_filename);
 
         double flushed_active = 0;
@@ -222,7 +222,7 @@ namespace wrench {
             WRENCH_INFO("Flushed %lf from active list", flushed_active)
         }
 
-//        this->log();
+        this->log();
 
         return flushed_inactive + flushed_active;
     }
@@ -260,10 +260,10 @@ namespace wrench {
      */
     double MemoryManager::pdflush() {
         double flushed = 0;
-//        this->log();
+        this->log();
         flushed += flushExpiredData(inactive_list);
         flushed += flushExpiredData(active_list);
-//        this->log();
+        this->log();
         return flushed;
     }
 
@@ -648,29 +648,29 @@ namespace wrench {
         return nullptr;
     }
 
-//    void MemoryManager::log(){
-//        this->time_log.push_back(this->simulation->getCurrentSimulatedDate());
-//        this->dirty_log.push_back(this->dirty);
-//        this->cached_log.push_back(this->cached);
-//        this->free_log.push_back(this->free);
-//    }
-//
-//    void MemoryManager::export_log(std::string filename){
-//        FILE *log_file = fopen(filename.c_str(), "w");
-//        fprintf(log_file, "time, total_mem, dirty, cache, used_mem\n");
-//
-//        double start = this->time_log.at(0);
-//        for (int i=0; i<this->time_log.size(); i++) {
-//            fprintf(log_file, "%lf, %lf, %lf, %lf, %lf\n",
-//                    this->time_log.at(i) - start,
-//                    total / 1000000.0,
-//                    this->dirty_log.at(i) / 1000000.0,
-//                    this->cached_log.at(i) / 1000000.0,
-//                    (total - this->free_log.at(i)) / 1000000.0);
-//        }
-//
-//        fclose(log_file);
-//    }
+    void MemoryManager::log(){
+        this->time_log.push_back(this->simulation->getCurrentSimulatedDate());
+        this->dirty_log.push_back(this->dirty);
+        this->cached_log.push_back(this->cached);
+        this->free_log.push_back(this->free);
+    }
+
+    void MemoryManager::export_log(std::string filename){
+        FILE *log_file = fopen(filename.c_str(), "w");
+        fprintf(log_file, "time, total_mem, dirty, cache, used_mem\n");
+
+        double start = this->time_log.at(0);
+        for (int i=0; i<this->time_log.size(); i++) {
+            fprintf(log_file, "%lf, %lf, %lf, %lf, %lf\n",
+                    this->time_log.at(i) - start,
+                    total / 1000000.0,
+                    this->dirty_log.at(i) / 1000000.0,
+                    this->cached_log.at(i) / 1000000.0,
+                    (total - this->free_log.at(i)) / 1000000.0);
+        }
+
+        fclose(log_file);
+    }
 
 //    void MemoryManager::fincore(){
 //

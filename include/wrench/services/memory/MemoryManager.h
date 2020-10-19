@@ -28,10 +28,10 @@ namespace wrench {
         double cached;
         double dirty;
 
-//        std::vector<double> time_log;
-//        std::vector<double> dirty_log;
-//        std::vector<double> cached_log;
-//        std::vector<double> free_log;
+        std::vector<double> time_log;
+        std::vector<double> dirty_log;
+        std::vector<double> cached_log;
+        std::vector<double> free_log;
 
         MemoryManager(s4u_Disk *memory, double dirty_ratio, int interval, int expired_time, std::string hostname);
 
@@ -93,9 +93,9 @@ namespace wrench {
 
         static s4u_Disk *getDisk(std::string mountpoint, std::string hostname);
 
-//        void log();
-//
-//        void export_log(std::string filename);
+        void log();
+
+        void export_log(std::string filename);
 
 //        void fincore();
 

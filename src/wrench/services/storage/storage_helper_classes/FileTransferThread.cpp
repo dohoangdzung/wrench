@@ -273,10 +273,10 @@ namespace wrench {
 
             try {
 
-//                if (Simulation::isWriteback()) {
-//                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
 //                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->fincore();
-//                }
+                }
 
                 // Receive chunks and write them to disk
                 while (not done) {
@@ -285,7 +285,7 @@ namespace wrench {
 
                     if (Simulation::isWriteback()) {
                         simulation->writeWithMemoryCache(file, msg->payload, location->getMountPoint());
-//                        simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                        simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
                     } else {
                         // Write to disk
                         simulation->writeToDisk(msg->payload, location->getStorageService()->hostname,
@@ -313,10 +313,10 @@ namespace wrench {
                                             location->getMountPoint());
                 }
 
-//                if (Simulation::isWriteback()) {
-//                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
 //                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->fincore();
-//                }
+                }
 
             } catch (std::shared_ptr<NetworkError> &e) {
                 throw;
@@ -350,9 +350,9 @@ namespace wrench {
                 // Sending a zero-byte file is really sending a 1-byte file
                 double remaining = std::max<double>(1, file->getSize());
 
-//                if (Simulation::isWriteback()) {
-//                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
-//                }
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                }
 
                 while (remaining > 0) {
                     double chunk_size = std::min<double>(this->buffer_size, remaining);
@@ -376,10 +376,10 @@ namespace wrench {
                                                            this->file,
                                                            (unsigned long)chunk_size, (remaining <= 0)));
                 }
-//                if (Simulation::isWriteback()) {
-//                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+                if (Simulation::isWriteback()) {
+                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
 //                    simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->fincore();
-//                }
+                }
                 req->wait();
                 WRENCH_INFO("Bytes sent over the network were received");
             } catch (std::shared_ptr<NetworkError> &e) {
