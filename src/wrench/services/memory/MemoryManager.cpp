@@ -6,6 +6,7 @@
 #include "wrench/simgrid_S4U_util/S4U_Simulation.h"
 #include "wrench/workflow/failure_causes/HostError.h"
 #include <wrench/services/memory/MemoryManager.h>
+#include "wrench/wms/WMS.h"
 
 WRENCH_LOG_CATEGORY(wrench_periodic_flush, "Log category for Periodic Flush");
 
@@ -61,17 +62,17 @@ namespace wrench {
 
     int MemoryManager::main() {
 
-        TerminalOutput::setThisProcessLoggingColor(TerminalOutput::COLOR_MAGENTA);
-        WRENCH_INFO("Periodic Flush starting with interval = %d , expired time = %d",
-                    this->interval, this->expired_time);
+        TerminalOutput::setThisProcessLoggingColor(TerminalOutput::COLOR_MAGENTA);WRENCH_INFO(
+                "Periodic Flush starting with interval = %d , expired time = %d",
+                this->interval, this->expired_time);
 
         while (this->getState() == State::UP) {
 
             double start_time = S4U_Simulation::getClock();
             double amt = pdflush();
             double end_time = S4U_Simulation::getClock();
-            if (amt > 0) {
-                WRENCH_INFO("Periodically flushed %lf MB in %lf", amt / 1000000, end_time - start_time)
+            if (amt > 0) { WRENCH_INFO("Periodically flushed %lf MB in %lf, %lf MB dirty data left",
+                    amt / 1000000, end_time - start_time, this->dirty / 1000000)
             }
 
             if (end_time - start_time < interval) {
@@ -151,7 +152,8 @@ namespace wrench {
         if (amount <= 0) return 0;
         double flushed = 0;
 
-        std::map<std::string, double> flushing_map;
+        std::map<std::string, double> local_flushing_map;
+        std::map<std::shared_ptr<FileLocation>, double> remote_flushing_map;
 
         for (auto blk : list) {
 
@@ -164,17 +166,30 @@ namespace wrench {
                     // flush whole block
                     blk->setDirty(false);
                     flushed += blk->getSize();
-                    flushing_map[blk->getMountpoint()] += blk->getSize();
+                    if (blk->getLocation() != nullptr && blk->getLocation()->getServerStorageService() != nullptr
+                        && this->getHostname().compare(blk->getLocation()->getServerStorageService()->getHostname()) !=
+                           0) {
+                        remote_flushing_map[blk->getLocation()] += blk->getSize();
+                    } else {
+                        local_flushing_map[blk->getLocation()->getMountPoint()] += blk->getSize();
+                    }
                 } else if (flushed < amount && amount < flushed + blk->getSize()) {
 
                     double blk_flushed = amount - flushed;
-                    flushing_map[blk->getMountpoint()] += blk_flushed;
+                    if (blk->getLocation() != nullptr && blk->getLocation()->getServerStorageService() != nullptr
+                        && this->getHostname().compare(blk->getLocation()->getServerStorageService()->getHostname()) !=
+                           0) {
+                        remote_flushing_map[blk->getLocation()] += blk->getSize();
+                    } else {
+                        local_flushing_map[blk->getLocation()->getMountPoint()] += blk_flushed;
+                    }
+
                     flushed = amount;
                     // split
                     blk->setSize(blk->getSize() - blk_flushed);
 
                     std::string fn = blk->getFileId();
-                    inactive_list.push_back(new Block(fn, blk->getMountpoint(), blk_flushed, blk->getLastAccess(),
+                    inactive_list.push_back(new Block(fn, blk->getLocation(), blk_flushed, blk->getLastAccess(),
                                                       false, blk->getDirtyTime()));
                 } else {
                     // done flushing
@@ -184,7 +199,7 @@ namespace wrench {
         }
 
         std::vector<simgrid::s4u::IoPtr> io_ptrs;
-        for (auto it = flushing_map.begin(); it != flushing_map.end(); it++) {
+        for (auto it = local_flushing_map.begin(); it != local_flushing_map.end(); it++) {
             s4u_Disk *disk = getDisk(it->first, this->hostname);
             io_ptrs.push_back(disk->write_async(it->second));
             disk->write_async(it->second);
@@ -194,9 +209,30 @@ namespace wrench {
             io_ptrs[i]->wait();
         }
 
+        for (auto it = remote_flushing_map.begin(); it != remote_flushing_map.end(); it++) {
+            // TODO find a proper way
+            std::shared_ptr<WMS> wms = *simulation->getWMSes().begin();
+            WorkflowFile *file = wms->getWorkflow()->addFile(
+                    it->first->getMountPoint() + this->random_string(),
+                    it->second);
+            StorageService::writeFile(file, FileLocation::LOCATION(it->first->getServerStorageService()));
+        }
+
         dirty -= flushed;
 
         return flushed;
+    }
+
+    std::string MemoryManager::random_string()
+    {
+        std::string str("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+
+        std::random_device rd;
+        std::mt19937 generator(rd());
+
+        std::shuffle(str.begin(), str.end(), generator);
+
+        return str.substr(0, 32);    // assumes 32 < number of characters in str
     }
 
     /**
@@ -215,11 +251,9 @@ namespace wrench {
             flushed_active = flushLruList(active_list, amount - flushed_inactive, excluded_filename);
         }
 
-        if (flushed_inactive > 0) {
-            WRENCH_INFO("Flushed %lf from inactive list", flushed_inactive)
+        if (flushed_inactive > 0) { WRENCH_INFO("Flushed %lf from inactive list", flushed_inactive)
         }
-        if (flushed_active > 0) {
-            WRENCH_INFO("Flushed %lf from active list", flushed_active)
+        if (flushed_active > 0) { WRENCH_INFO("Flushed %lf from active list", flushed_active)
         }
 
         this->log();
@@ -236,18 +270,35 @@ namespace wrench {
     double MemoryManager::flushExpiredData(std::vector<Block *> &list) {
 
         double flushed = 0;
+        std::map<std::shared_ptr<FileLocation>, double> remote_flushing_map;
 
         for (auto blk : list) {
             if (!blk->isDirty()) continue;
             if (S4U_Simulation::getClock() - blk->getDirtyTime() >= expired_time) {
+
                 blk->setDirty(false);
                 flushed += blk->getSize();
-                s4u_Disk *disk = getDisk(blk->getMountpoint(), this->hostname);
-                disk->write(blk->getSize());
+
+                if (blk->getLocation() != nullptr && blk->getLocation()->getServerStorageService() != nullptr
+                    && this->getHostname().compare(blk->getLocation()->getServerStorageService()->getHostname()) != 0) {
+                    remote_flushing_map[blk->getLocation()] += blk->getSize();
+                } else {
+                    s4u_Disk *disk = getDisk(blk->getLocation()->getMountPoint(), this->hostname);
+                    disk->write(blk->getSize());
+                }
 
                 this->dirty -= blk->getSize();
                 flushed += blk->getSize();
             }
+        }
+
+        for (auto it = remote_flushing_map.begin(); it != remote_flushing_map.end(); it++) {
+            // TODO find a proper way
+            std::shared_ptr<WMS> wms = *simulation->getWMSes().begin();
+            WorkflowFile *file = wms->getWorkflow()->addFile(
+                    it->first->getMountPoint() + random_string(),
+                    it->second);
+            StorageService::writeFile(file, FileLocation::LOCATION(it->first->getServerStorageService()));
         }
 
         return flushed;
@@ -313,16 +364,16 @@ namespace wrench {
      * @param filename
      * @param amount
      */
-    simgrid::s4u::IoPtr MemoryManager::readToCache(std::string filename, std::string mount_point,
+    simgrid::s4u::IoPtr MemoryManager::readToCache(std::string filename, std::shared_ptr<FileLocation> location,
                                                    double amount, bool async) {
         // Change stats
         free -= amount;
         cached += amount;
         // Push cached data to inactive list
-        inactive_list.push_back(new Block(filename, mount_point, amount, S4U_Simulation::getClock(), false, 0));
+        inactive_list.push_back(new Block(filename, location, amount, S4U_Simulation::getClock(), false, 0));
         balanceLruLists();
 
-        s4u_Disk *disk = getDisk(mount_point, this->hostname);
+        s4u_Disk *disk = getDisk(location->getMountPoint(), this->hostname);
         if (async) {
             return disk->read_async(amount);
         } else {
@@ -339,15 +390,15 @@ namespace wrench {
 
         double dirty_reaccessed = 0;
         double clean_reaccessed = 0;
-        std::string mnt_pt = "";
+        std::shared_ptr<FileLocation> location = nullptr;
 
         // Calculate dirty cached data
         for (int i = 0; i < inactive_list.size(); i++) {
             Block *blk = inactive_list.at(i);
             if (blk->getFileId().compare(filename) == 0) {
 
-                if (mnt_pt.empty()) {
-                    mnt_pt = blk->getMountpoint();
+                if (location == nullptr) {
+                    location = blk->getLocation();
                 }
 
                 if (blk->isDirty()) {
@@ -366,8 +417,8 @@ namespace wrench {
             Block *blk = active_list.at(i);
             if (blk->getFileId().compare(filename) == 0) {
 
-                if (mnt_pt.empty()) {
-                    mnt_pt = blk->getMountpoint();
+                if (location == nullptr) {
+                    location = blk->getLocation();
                 }
 
                 if (blk->isDirty()) {
@@ -384,11 +435,11 @@ namespace wrench {
 
         // create new blocks and put in the active list
         if (clean_reaccessed > 0) {
-            Block *new_blk = new Block(filename, mnt_pt, clean_reaccessed, S4U_Simulation::getClock(), false, 0);
+            Block *new_blk = new Block(filename, location, clean_reaccessed, S4U_Simulation::getClock(), false, 0);
             active_list.push_back(new_blk);
         }
         if (dirty_reaccessed > 0) {
-            Block *new_blk = new Block(filename, mnt_pt, dirty_reaccessed, S4U_Simulation::getClock(), true, 0);
+            Block *new_blk = new Block(filename, location, dirty_reaccessed, S4U_Simulation::getClock(), true, 0);
             active_list.push_back(new_blk);
         }
 
@@ -403,7 +454,7 @@ namespace wrench {
      */
     void MemoryManager::readChunkFromCache(std::string filename, double amount) {
 
-        std::string mnt_pt = "";
+        std::shared_ptr<FileLocation> location = nullptr;
         double dirty_reaccessed = 0;
         double clean_reaccessed = 0;
         double read = 0;
@@ -417,8 +468,8 @@ namespace wrench {
             Block *blk = inactive_list.at(i);
             if (blk->getFileId().compare(filename) == 0) {
 
-                if (mnt_pt.empty()) {
-                    mnt_pt = blk->getMountpoint();
+                if (location == nullptr) {
+                    location = blk->getLocation();
                 }
 
                 if (read + blk->getSize() <= amount) {
@@ -435,7 +486,7 @@ namespace wrench {
                 } else {
                     double blk_read_amt = amount - read;
                     read += blk_read_amt;
-                    Block* read_blk = blk->split(blk->getSize() - blk_read_amt);
+                    Block *read_blk = blk->split(blk->getSize() - blk_read_amt);
                     if (blk->isDirty()) {
                         dirty_reaccessed += blk_read_amt;
                         this->active_list.push_back(read_blk);
@@ -455,8 +506,8 @@ namespace wrench {
             Block *blk = active_list.at(i);
             if (blk->getFileId().compare(filename) == 0) {
 
-                if (mnt_pt.empty()) {
-                    mnt_pt = blk->getMountpoint();
+                if (location == nullptr) {
+                    location = blk->getLocation();
                 }
 
                 if (read + blk->getSize() <= amount) {
@@ -474,7 +525,7 @@ namespace wrench {
                 } else {
                     double blk_read_amt = amount - read;
                     read += blk_read_amt;
-                    Block* read_blk = blk->split(blk->getSize() - blk_read_amt);
+                    Block *read_blk = blk->split(blk->getSize() - blk_read_amt);
                     if (blk->isDirty()) {
                         dirty_reaccessed += blk_read_amt;
                         this->active_list.push_back(read_blk);
@@ -488,7 +539,7 @@ namespace wrench {
 
         // create new blocks and put in the active list
         if (clean_reaccessed > 0) {
-            Block *new_blk = new Block(filename, mnt_pt, clean_reaccessed, S4U_Simulation::getClock(), false, 0);
+            Block *new_blk = new Block(filename, location, clean_reaccessed, S4U_Simulation::getClock(), false, 0);
             active_list.push_back(new_blk);
         }
 //        if (dirty_reaccessed > 0) {
@@ -506,17 +557,23 @@ namespace wrench {
      * @param filename: name of the file written
      * @param amount: amount of data written
      */
-    void MemoryManager::writeToCache(std::string filename, std::string mnt_pt, double amount) {
+    void MemoryManager::writebackToCache(std::string filename, std::shared_ptr<FileLocation> location,
+                                     double amount, bool is_dirty) {
 
-        Block *blk = new Block(filename, mnt_pt, amount, S4U_Simulation::getClock(), true, S4U_Simulation::getClock());
-        inactive_list.push_back(blk);
+        this->addToCache(filename, location, amount, is_dirty);
+        memory->write(amount);
+//        this->log();
+    }
+
+    void MemoryManager::addToCache(std::string filename, std::shared_ptr<FileLocation> location, double amount, bool is_dirty) {
+        Block *bl = new Block(filename, location, amount, S4U_Simulation::getClock(), is_dirty, S4U_Simulation::getClock());
+        inactive_list.push_back(bl);
 
         this->cached += amount;
         this->free -= amount;
-        this->dirty += amount;
-
-        memory->write(amount);
-//        this->log();
+        if (is_dirty) {
+            this->dirty += amount;
+        }
     }
 
     bool compare_last_access(Block *blk1, Block *blk2) {
@@ -532,12 +589,12 @@ namespace wrench {
 
         double inactive_size = 0;
         // Calculate size of each list
-        for (int i=0; i < inactive_list.size(); i++) {
+        for (int i = 0; i < inactive_list.size(); i++) {
             inactive_size += inactive_list[i]->getSize();
         }
 
         double active_size = 0;
-        for (int i=0; i < active_list.size(); i++) {
+        for (int i = 0; i < active_list.size(); i++) {
             active_size += active_list[i]->getSize();
         }
 
@@ -559,7 +616,7 @@ namespace wrench {
                 } else {
                     // split the block
                     std::string fn = blk->getFileId();
-                    Block *new_blk = new Block(fn, blk->getMountpoint(), to_move_amt - moved_amt, blk->getLastAccess(),
+                    Block *new_blk = new Block(fn, blk->getLocation(), to_move_amt - moved_amt, blk->getLastAccess(),
                                                blk->isDirty(), blk->getDirtyTime());
                     inactive_list.push_back(new_blk);
 
@@ -648,19 +705,19 @@ namespace wrench {
         return nullptr;
     }
 
-    void MemoryManager::log(){
+    void MemoryManager::log() {
         this->time_log.push_back(this->simulation->getCurrentSimulatedDate());
         this->dirty_log.push_back(this->dirty);
         this->cached_log.push_back(this->cached);
         this->free_log.push_back(this->free);
     }
 
-    void MemoryManager::export_log(std::string filename){
+    void MemoryManager::export_log(std::string filename) {
         FILE *log_file = fopen(filename.c_str(), "w");
         fprintf(log_file, "time, total_mem, dirty, cache, used_mem\n");
 
         double start = this->time_log.at(0);
-        for (int i=0; i<this->time_log.size(); i++) {
+        for (int i = 0; i < this->time_log.size(); i++) {
             fprintf(log_file, "%lf, %lf, %lf, %lf, %lf\n",
                     this->time_log.at(i) - start,
                     total / 1000000.0,

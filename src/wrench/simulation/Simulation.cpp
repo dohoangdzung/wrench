@@ -767,13 +767,13 @@ namespace wrench {
      * @param n_bytes: amount of read data in byte.
      * @param mountpoint: mountpoint where file is located.
      */
-    void Simulation::readWithMemoryCache(WorkflowFile *file, double n_bytes, std::string mountpoint) {
+    void Simulation::readWithMemoryCache(WorkflowFile *file, double n_bytes, std::shared_ptr<FileLocation> location) {
 
         std::string hostname = getHostName();
 
         unique_disk_sequence_number += 1;
         int temp_unique_sequence_number = unique_disk_sequence_number;
-        this->getOutput().addTimestampDiskReadStart(hostname, mountpoint, n_bytes, temp_unique_sequence_number);
+        this->getOutput().addTimestampDiskReadStart(hostname, location->getMountPoint(), n_bytes, temp_unique_sequence_number);
 
         MemoryManager *mem_mng = getMemoryManagerByHost(hostname);
         std::vector<Block*> file_blocks = mem_mng->getCachedBlocks(file->getID());
@@ -789,7 +789,7 @@ namespace wrench {
                        file->getID());
         mem_mng->evict(n_bytes + from_disk - mem_mng->getFreeMemory(), file->getID());
         if (from_disk > 0) {
-            mem_mng->readToCache(file->getID(), mountpoint, from_disk, false);
+            mem_mng->readToCache(file->getID(), location, from_disk, false);
         }
 
         if (from_cache > 0) {
@@ -799,33 +799,39 @@ namespace wrench {
 //        Anonymous used by application
         mem_mng->useAnonymousMemory(n_bytes);
 
-        this->getOutput().addTimestampDiskReadCompletion(hostname, mountpoint, n_bytes, temp_unique_sequence_number);
+        this->getOutput().addTimestampDiskReadCompletion(hostname, location->getMountPoint(), n_bytes, temp_unique_sequence_number);
     }
 
     /**
-     * Write a file locally, only available if writeback is activated.
+     * Write a file locally with writeback strategy, only available if writeback is activated.
      * @param filename: name of the file written.
      * @param n_bytes: amount of written data in byte.
      * @param mountpoint: mount point where file is located.
      */
-    void Simulation::writeWithMemoryCache(WorkflowFile *file, double n_bytes, std::string mountpoint) {
+    void Simulation::writebackWithMemoryCache(WorkflowFile *file, double n_bytes, std::shared_ptr<FileLocation> location, bool is_dirty) {
 
         std::string hostname = getHostName();
 
         unique_disk_sequence_number += 1;
         int temp_unique_sequence_number = unique_disk_sequence_number;
-        this->getOutput().addTimestampDiskWriteStart(hostname, mountpoint, n_bytes, temp_unique_sequence_number);
+        this->getOutput().addTimestampDiskWriteStart(hostname, location->getMountPoint(), n_bytes, temp_unique_sequence_number);
 
         MemoryManager *mem_mng = this->getMemoryManagerByHost(hostname);
 
-        double remaining_dirty = mem_mng->getDirtyRatio() * mem_mng->getAvailableMemory() - mem_mng->getDirty();
+        double remaining_dirty = 0;
+        if (is_dirty) {
+            remaining_dirty = mem_mng->getDirtyRatio() * mem_mng->getAvailableMemory() - mem_mng->getDirty();
+        } else {
+            remaining_dirty = mem_mng->getAvailableMemory();
+        }
+
         double mem_bw_amt = 0;
 
         // free write to cache without forced flushing
         if (remaining_dirty > 0) {
             mem_mng->evict(std::min(n_bytes, remaining_dirty) - mem_mng->getFreeMemory(), "");
             mem_bw_amt = std::min(n_bytes, mem_mng->getFreeMemory());
-            mem_mng->writeToCache(file->getID(), mountpoint, mem_bw_amt);
+            mem_mng->writebackToCache(file->getID(), location, mem_bw_amt, is_dirty);
         }
 
         double remaining = n_bytes - mem_bw_amt;
@@ -835,11 +841,37 @@ namespace wrench {
             mem_mng->evict(remaining - mem_mng->getFreeMemory(), "");
 
             double to_cache = std::min(mem_mng->getFreeMemory(), remaining);
-            mem_mng->writeToCache(file->getID(), mountpoint, to_cache);
+            mem_mng->writebackToCache(file->getID(), location, to_cache, is_dirty);
             remaining -= to_cache;
         }
 
-        this->getOutput().addTimestampDiskWriteCompletion(hostname, mountpoint, n_bytes, temp_unique_sequence_number);
+        this->getOutput().addTimestampDiskWriteCompletion(hostname, location->getMountPoint(), n_bytes, temp_unique_sequence_number);
+    }
+
+    /**
+     * Write-through a file locally, only available if writeback is activated.
+     * @param filename: name of the file written.
+     * @param n_bytes: amount of written data in byte.
+     * @param mountpoint: mount point where file is located.
+     */
+    void Simulation::writeThroughWithMemoryCache(WorkflowFile *file, double n_bytes, std::shared_ptr<FileLocation> location) {
+
+        std::string hostname = getHostName();
+
+        unique_disk_sequence_number += 1;
+        int temp_unique_sequence_number = unique_disk_sequence_number;
+        this->getOutput().addTimestampDiskWriteStart(hostname, location->getMountPoint(), n_bytes, temp_unique_sequence_number);
+
+        MemoryManager *mem_mng = this->getMemoryManagerByHost(hostname);
+
+        // Write to disk
+        this->writeToDisk(n_bytes, hostname, location->getMountPoint());
+
+        mem_mng->evict(n_bytes - mem_mng->getFreeMemory(), "");
+        mem_mng->addToCache(file->getID(), location, n_bytes, false);
+        double to_cache = std::min(mem_mng->getFreeMemory(), n_bytes);
+
+        this->getOutput().addTimestampDiskWriteCompletion(hostname, location->getMountPoint(), n_bytes, temp_unique_sequence_number);
     }
 
     /**
@@ -854,6 +886,24 @@ namespace wrench {
             }
         }
         return nullptr;
+    }
+
+    /**
+     * Helper method to get a StorageService of a host with hostname
+     * @param hostname: name of the host
+     * @return MemoryManager of the host
+     */
+    std::shared_ptr<StorageService> Simulation::getFirstStorageServiceByHost(std::string hostname) {
+        for (const auto &ptr : this->storage_services) {
+            if (strcmp(ptr->getHostname().c_str(), hostname.c_str()) == 0) {
+                return ptr;
+            }
+        }
+        return nullptr;
+    }
+
+    std::set<std::shared_ptr<WMS>> Simulation::getWMSes(){
+        return this->wmses;
     }
 
     /**

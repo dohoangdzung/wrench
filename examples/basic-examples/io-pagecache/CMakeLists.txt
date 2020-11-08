@@ -36,18 +36,18 @@ install(TARGETS wrench-example-io-pagecache-multi DESTINATION bin)
 
 #============================================================
 set(SOURCE_FILES
-        ConcurrentPipelineWMS.h
-        ConcurrentPipelineWMS.cpp
-        IOPageCacheRemote.cpp
+        NFSPipelineWMS.h
+        NFSPipelineWMS.cpp
+        IOPageCacheNFS.cpp
         )
 
-add_executable(wrench-example-io-pagecache-remote ${SOURCE_FILES})
+add_executable(wrench-example-io-pagecache-nfs ${SOURCE_FILES})
 
 if (ENABLE_BATSCHED)
     find_library(ZMQ_LIBRARY NAMES zmq)
-    target_link_libraries(wrench-example-io-pagecache-remote wrench ${SimGrid_LIBRARY} ${PUGIXML_LIBRARY} ${ZMQ_LIBRARY})
+    target_link_libraries(wrench-example-io-pagecache-nfs wrench ${SimGrid_LIBRARY} ${PUGIXML_LIBRARY} ${ZMQ_LIBRARY})
 else()
-    target_link_libraries(wrench-example-io-pagecache-remote wrench ${SimGrid_LIBRARY} ${PUGIXML_LIBRARY})
+    target_link_libraries(wrench-example-io-pagecache-nfs wrench ${SimGrid_LIBRARY} ${PUGIXML_LIBRARY})
 endif()
 
-install(TARGETS wrench-example-io-pagecache-remote DESTINATION bin)
+install(TARGETS wrench-example-io-pagecache-nfs DESTINATION bin)

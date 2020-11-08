@@ -358,9 +358,23 @@ namespace wrench {
                         mem_req += f->getSize();
                     }
 
+                    bool isFileRead = false;
                     try{
                         this->simulation->getOutput().addTimestampFileReadStart(f, l.get(), l->getStorageService().get(), task);
-                        StorageService::readFile(f, l);
+
+                        if (Simulation::isWriteback()) {
+                            MemoryManager *mm = simulation->getMemoryManagerByHost(S4U_Simulation::getHostName());
+                            if (mm->getCachedAmount(f->getID().c_str()) < f->getSize()) {
+                                StorageService::copyFile(f,FileLocation::LOCATION(l->getServerStorageService()), l);
+                                isFileRead = true;
+                            }
+                        }
+                        if (not isFileRead) {
+                            StorageService::readFile(f, l);
+                        }
+//                        this->simulation->getOutput().addTimestampFileReadStart(f, l.get(), l->getStorageService().get(), task);
+//                        StorageService::readFile(f, l);
+
                     } catch (WorkflowExecutionException &e) {
                         this->simulation->getOutput().addTimestampFileReadFailure(f, l.get(), l->getStorageService().get(), task);
                         throw;
@@ -372,6 +386,7 @@ namespace wrench {
                 this->failure_timestamp_should_be_generated = true;
                 throw;
             }
+            WRENCH_INFO("Reading done")
 
             // Run the task's computation (which can be multicore)
             WRENCH_INFO("Executing task %s (%lf flops) on %ld cores (%s)", task->getID().c_str(), task->getFlops(),
@@ -423,6 +438,7 @@ namespace wrench {
                 this->failure_timestamp_should_be_generated = true;
                 throw;
             }
+            WRENCH_INFO("Writing done")
 
             WRENCH_DEBUG("Setting the internal state of %s to TASK_COMPLETED", task->getID().c_str());
             task->setInternalState(WorkflowTask::InternalState::TASK_COMPLETED);

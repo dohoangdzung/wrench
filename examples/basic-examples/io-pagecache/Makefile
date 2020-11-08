@@ -39,10 +39,10 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /usr/local/Cellar/cmake/3.14.4/bin/cmake
+CMAKE_COMMAND = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake
 
 # The command to remove a file.
-RM = /usr/local/Cellar/cmake/3.14.4/bin/cmake -E remove -f
+RM = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
@@ -59,37 +59,37 @@ CMAKE_BINARY_DIR = /Users/dzung/Documents/Concordia/thesis/src/wrench
 # Special rule for the target install/local
 install/local: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.14.4/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local
 
 # Special rule for the target install/local
 install/local/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.14.4/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local/fast
 
 # Special rule for the target install/strip
 install/strip: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/local/Cellar/cmake/3.14.4/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
 .PHONY : install/strip
 
 # Special rule for the target install/strip
 install/strip/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/local/Cellar/cmake/3.14.4/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
 .PHONY : install/strip/fast
 
 # Special rule for the target install
 install: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/local/Cellar/cmake/3.14.4/bin/cmake -P cmake_install.cmake
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -P cmake_install.cmake
 .PHONY : install
 
 # Special rule for the target install
 install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/local/Cellar/cmake/3.14.4/bin/cmake -P cmake_install.cmake
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
 
 # Special rule for the target list_install_components
@@ -105,7 +105,7 @@ list_install_components/fast: list_install_components
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/usr/local/Cellar/cmake/3.14.4/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -115,8 +115,8 @@ rebuild_cache/fast: rebuild_cache
 
 # Special rule for the target edit_cache
 edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/usr/local/Cellar/cmake/3.14.4/bin/ccmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -172,19 +172,19 @@ wrench-example-io-pagecache-multi/fast:
 .PHONY : wrench-example-io-pagecache-multi/fast
 
 # Convenience name for target.
-examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/rule:
-	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f CMakeFiles/Makefile2 examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/rule
-.PHONY : examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/rule
+examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/rule:
+	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f CMakeFiles/Makefile2 examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/rule
+.PHONY : examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/rule
 
 # Convenience name for target.
-wrench-example-io-pagecache-remote: examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/rule
+wrench-example-io-pagecache-nfs: examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/rule
 
-.PHONY : wrench-example-io-pagecache-remote
+.PHONY : wrench-example-io-pagecache-nfs
 
 # fast build rule for target.
-wrench-example-io-pagecache-remote/fast:
-	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/build
-.PHONY : wrench-example-io-pagecache-remote/fast
+wrench-example-io-pagecache-nfs/fast:
+	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/build
+.PHONY : wrench-example-io-pagecache-nfs/fast
 
 # Convenience name for target.
 examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-single.dir/rule:
@@ -208,7 +208,6 @@ ConcurrentPipelineWMS.o: ConcurrentPipelineWMS.cpp.o
 # target to build an object file
 ConcurrentPipelineWMS.cpp.o:
 	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-multi.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-multi.dir/ConcurrentPipelineWMS.cpp.o
-	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/ConcurrentPipelineWMS.cpp.o
 	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-single.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-single.dir/ConcurrentPipelineWMS.cpp.o
 .PHONY : ConcurrentPipelineWMS.cpp.o
 
@@ -219,7 +218,6 @@ ConcurrentPipelineWMS.i: ConcurrentPipelineWMS.cpp.i
 # target to preprocess a source file
 ConcurrentPipelineWMS.cpp.i:
 	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-multi.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-multi.dir/ConcurrentPipelineWMS.cpp.i
-	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/ConcurrentPipelineWMS.cpp.i
 	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-single.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-single.dir/ConcurrentPipelineWMS.cpp.i
 .PHONY : ConcurrentPipelineWMS.cpp.i
 
@@ -230,7 +228,6 @@ ConcurrentPipelineWMS.s: ConcurrentPipelineWMS.cpp.s
 # target to generate assembly for a file
 ConcurrentPipelineWMS.cpp.s:
 	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-multi.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-multi.dir/ConcurrentPipelineWMS.cpp.s
-	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/ConcurrentPipelineWMS.cpp.s
 	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-single.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-single.dir/ConcurrentPipelineWMS.cpp.s
 .PHONY : ConcurrentPipelineWMS.cpp.s
 
@@ -261,32 +258,32 @@ IOPageCacheMulti.cpp.s:
 	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-multi.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-multi.dir/IOPageCacheMulti.cpp.s
 .PHONY : IOPageCacheMulti.cpp.s
 
-IOPageCacheRemote.o: IOPageCacheRemote.cpp.o
+IOPageCacheNFS.o: IOPageCacheNFS.cpp.o
 
-.PHONY : IOPageCacheRemote.o
+.PHONY : IOPageCacheNFS.o
 
 # target to build an object file
-IOPageCacheRemote.cpp.o:
-	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/IOPageCacheRemote.cpp.o
-.PHONY : IOPageCacheRemote.cpp.o
+IOPageCacheNFS.cpp.o:
+	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/IOPageCacheNFS.cpp.o
+.PHONY : IOPageCacheNFS.cpp.o
 
-IOPageCacheRemote.i: IOPageCacheRemote.cpp.i
+IOPageCacheNFS.i: IOPageCacheNFS.cpp.i
 
-.PHONY : IOPageCacheRemote.i
+.PHONY : IOPageCacheNFS.i
 
 # target to preprocess a source file
-IOPageCacheRemote.cpp.i:
-	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/IOPageCacheRemote.cpp.i
-.PHONY : IOPageCacheRemote.cpp.i
+IOPageCacheNFS.cpp.i:
+	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/IOPageCacheNFS.cpp.i
+.PHONY : IOPageCacheNFS.cpp.i
 
-IOPageCacheRemote.s: IOPageCacheRemote.cpp.s
+IOPageCacheNFS.s: IOPageCacheNFS.cpp.s
 
-.PHONY : IOPageCacheRemote.s
+.PHONY : IOPageCacheNFS.s
 
 # target to generate assembly for a file
-IOPageCacheRemote.cpp.s:
-	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-remote.dir/IOPageCacheRemote.cpp.s
-.PHONY : IOPageCacheRemote.cpp.s
+IOPageCacheNFS.cpp.s:
+	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/IOPageCacheNFS.cpp.s
+.PHONY : IOPageCacheNFS.cpp.s
 
 IOPageCacheSingle.o: IOPageCacheSingle.cpp.o
 
@@ -315,6 +312,33 @@ IOPageCacheSingle.cpp.s:
 	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-single.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-single.dir/IOPageCacheSingle.cpp.s
 .PHONY : IOPageCacheSingle.cpp.s
 
+NFSPipelineWMS.o: NFSPipelineWMS.cpp.o
+
+.PHONY : NFSPipelineWMS.o
+
+# target to build an object file
+NFSPipelineWMS.cpp.o:
+	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/NFSPipelineWMS.cpp.o
+.PHONY : NFSPipelineWMS.cpp.o
+
+NFSPipelineWMS.i: NFSPipelineWMS.cpp.i
+
+.PHONY : NFSPipelineWMS.i
+
+# target to preprocess a source file
+NFSPipelineWMS.cpp.i:
+	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/NFSPipelineWMS.cpp.i
+.PHONY : NFSPipelineWMS.cpp.i
+
+NFSPipelineWMS.s: NFSPipelineWMS.cpp.s
+
+.PHONY : NFSPipelineWMS.s
+
+# target to generate assembly for a file
+NFSPipelineWMS.cpp.s:
+	cd /Users/dzung/Documents/Concordia/thesis/src/wrench && $(MAKE) -f examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/build.make examples/basic-examples/io-pagecache/CMakeFiles/wrench-example-io-pagecache-nfs.dir/NFSPipelineWMS.cpp.s
+.PHONY : NFSPipelineWMS.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -326,9 +350,9 @@ help:
 	@echo "... install"
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
-	@echo "... edit_cache"
 	@echo "... wrench-example-io-pagecache-multi"
-	@echo "... wrench-example-io-pagecache-remote"
+	@echo "... edit_cache"
+	@echo "... wrench-example-io-pagecache-nfs"
 	@echo "... wrench-example-io-pagecache-single"
 	@echo "... ConcurrentPipelineWMS.o"
 	@echo "... ConcurrentPipelineWMS.i"
@@ -336,12 +360,15 @@ help:
 	@echo "... IOPageCacheMulti.o"
 	@echo "... IOPageCacheMulti.i"
 	@echo "... IOPageCacheMulti.s"
-	@echo "... IOPageCacheRemote.o"
-	@echo "... IOPageCacheRemote.i"
-	@echo "... IOPageCacheRemote.s"
+	@echo "... IOPageCacheNFS.o"
+	@echo "... IOPageCacheNFS.i"
+	@echo "... IOPageCacheNFS.s"
 	@echo "... IOPageCacheSingle.o"
 	@echo "... IOPageCacheSingle.i"
 	@echo "... IOPageCacheSingle.s"
+	@echo "... NFSPipelineWMS.o"
+	@echo "... NFSPipelineWMS.i"
+	@echo "... NFSPipelineWMS.s"
 .PHONY : help
 
 

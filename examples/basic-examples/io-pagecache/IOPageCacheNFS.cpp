@@ -32,15 +32,7 @@
 #include <iostream>
 #include <wrench.h>
 #include <wrench/services/memory/MemoryManager.h>
-#include "ConcurrentPipelineWMS.h" // WMS implementation
-
-/**
- * @brief The Simulator's main function
- *
- * @param argc: argument count
- * @param argv: argument array
- * @return 0 on success, non-zero otherwise
- */
+#include "NFSPipelineWMS.h" // WMS implementation
 
 wrench::Workflow *workflow_multithread(int num_pipes, int num_tasks, int core_per_task,
                                        long flops, long file_size, long mem_required) {
@@ -73,6 +65,31 @@ wrench::Workflow *workflow_multithread(int num_pipes, int num_tasks, int core_pe
     return workflow;
 }
 
+void export_output_single(wrench::SimulationOutput output, int num_tasks, std::string filename) {
+    auto read_start = output.getTrace<wrench::SimulationTimestampFileReadStart>();
+    auto read_end = output.getTrace<wrench::SimulationTimestampFileReadCompletion>();
+    auto write_start = output.getTrace<wrench::SimulationTimestampFileWriteStart>();
+    auto write_end = output.getTrace<wrench::SimulationTimestampFileWriteCompletion>();
+    auto task_start = output.getTrace<wrench::SimulationTimestampTaskStart>();
+    auto task_end = output.getTrace<wrench::SimulationTimestampTaskCompletion>();
+
+    FILE *log_file = fopen(filename.c_str(), "w");
+    fprintf(log_file, "type, start, end\n");
+
+    for (int i = 0; i < num_tasks; i++) {
+        std::cerr << "Task " << read_end[i]->getContent()->getTask()->getID()
+                  << " completed at " << task_end[i]->getDate()
+                  << " in " << task_end[i]->getDate() - task_start[i]->getDate()
+                  << std::endl;
+
+
+        fprintf(log_file, "read, %lf, %lf\n", read_start[i]->getDate(), read_end[i]->getDate());
+        fprintf(log_file, "write, %lf, %lf\n", write_start[i]->getDate(), write_end[i]->getDate());
+    }
+
+    fclose(log_file);
+}
+
 void export_output_multi(wrench::SimulationOutput output, int num_tasks, std::string filename) {
     auto read_start = output.getTrace<wrench::SimulationTimestampFileReadStart>();
     auto read_end = output.getTrace<wrench::SimulationTimestampFileReadCompletion>();
@@ -99,6 +116,13 @@ void export_output_multi(wrench::SimulationOutput output, int num_tasks, std::st
     fclose(log_file);
 }
 
+/**
+ * @brief The Simulator's main function
+ *
+ * @param argc: argument count
+ * @param argv: argument array
+ * @return 0 on success, non-zero otherwise
+ */
 int main(int argc, char **argv) {
 
     int num_task = 3;
@@ -146,15 +170,19 @@ int main(int argc, char **argv) {
                                                    file_size_gb * 1000000000, mem_req_gb * 1000000000);
 
     std::cerr << "Instantiating a SimpleStorageService on storage_host..." << std::endl;
-    auto storage_service = simulation.add(new wrench::SimpleStorageService(
+    auto server_storage_service = simulation.add(new wrench::SimpleStorageService(
             "storage_host", {"/"}, {{wrench::SimpleStorageServiceProperty::BUFFER_SIZE, "100000000"}}, {}));
+
+    auto client_storage_service = simulation.add(new wrench::SimpleStorageService(
+            "compute_host", {"/"}, {{wrench::SimpleStorageServiceProperty::BUFFER_SIZE, "100000000"}}, {}));
 
     std::cerr << "Instantiating a BareMetalComputeService on compute_host..." << std::endl;
     auto baremetal_service = simulation.add(new wrench::BareMetalComputeService(
             "compute_host", {"compute_host"}, "", {}, {}));
 
     auto wms = simulation.add(
-            new wrench::ConcurrentPipelineWMS({baremetal_service}, {storage_service}, "compute_host"));
+            new wrench::NFSPipelineWMS({baremetal_service}, client_storage_service, server_storage_service,
+                    "compute_host"));
 
     wms->addWorkflow(workflow);
 
@@ -164,7 +192,7 @@ int main(int argc, char **argv) {
 
     std::cerr << "Staging task input files..." << std::endl;
     for (auto const &f : workflow->getInputFiles()) {
-        simulation.stageFile(f, storage_service);
+        simulation.stageFile(f, server_storage_service);
     }
 
     /* Launch the simulation. This call only returns when the simulation is complete. */
@@ -180,11 +208,17 @@ int main(int argc, char **argv) {
     std::string sub_dir = "original/";
     for (int i = 0; i <= argc; i++) {
         if (not strcmp(argv[i], "--writeback")) {
-            sub_dir = "writeback/";
+            sub_dir = "pagecache/";
             break;
         }
     }
 
+//    export_output_single(simulation.getOutput(), num_task,
+//                         "remote/" + sub_dir + to_string(file_size_gb) + "gb_sim_time.csv");
+//
+//    simulation.getMemoryManagerByHost("storage_host")->export_log(
+//            "remote/" + sub_dir + to_string(file_size_gb) + "gb_sim_mem.csv");
+//
     simulation.getOutput().dumpUnifiedJSON(workflow,
                                            "remote/" + sub_dir + "/dump_" + to_string(no_pipelines) + ".json");
     export_output_multi(simulation.getOutput(), workflow->getNumberOfTasks(), "remote/" + sub_dir + "timestamp_multi_sim_.csv");

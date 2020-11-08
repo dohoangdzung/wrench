@@ -5,22 +5,30 @@
 
         <host id="compute_host" speed="1Gf" core="32">
             <prop id="ram" value="268GB"/>
-            <disk id="memory" read_bw="2765MBps" write_bw="2765MBps">
+            <disk id="memory" read_bw="4812MBps" write_bw="4812MBps">
                 <prop id="size" value="268GB"/>
                 <prop id="mount" value="/memory"/>
             </disk>
-        </host>
-
-        <host id="storage_host" speed="1Gf" core="32">
-            <prop id="ram" value="16GB" />
             <disk id="disk01" read_bw="465MBps" write_bw="465MBps">
                 <prop id="size" value="450GB"/>
+                <prop id="mount" value="/"/>
+            </disk>
+        </host>
+
+        <host id="storage_host" speed="3Gf" core="32">
+            <prop id="ram" value="268GB"/>
+            <disk id="memory" read_bw="4812MBps" write_bw="4812MBps">
+                <prop id="size" value="268GB"/>
+                <prop id="mount" value="/memory"/>
+            </disk>
+            <disk id="disk01" read_bw="375MBps" write_bw="375MBps">
+                <prop id="size" value="400GB"/>
                 <prop id="mount" value="/"/>
             </disk>
        </host>
 
         <!-- A network link that connects both hosts -->
-        <link id="network_link" bandwidth="1GBps" latency="20us"/>
+        <link id="network_link" bandwidth="2GBps" latency="20us"/>
         <!--ComputeHost's local "loopback" link -->
         <link id="loopback_ComputeHost" bandwidth="1000EBps" latency="0us"/>
         <!-- WMSHost's local "loopback" link -->
