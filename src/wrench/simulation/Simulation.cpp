@@ -869,7 +869,6 @@ namespace wrench {
 
         mem_mng->evict(n_bytes - mem_mng->getFreeMemory(), "");
         mem_mng->addToCache(file->getID(), location, n_bytes, false);
-        double to_cache = std::min(mem_mng->getFreeMemory(), n_bytes);
 
         this->getOutput().addTimestampDiskWriteCompletion(hostname, location->getMountPoint(), n_bytes, temp_unique_sequence_number);
     }

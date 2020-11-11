@@ -288,12 +288,11 @@ namespace wrench {
                     if (Simulation::isWriteback()) {
                         simulation->writeThroughWithMemoryCache(file, msg->payload, location);
                         simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
-                    }
-//                    else {
+                    } else {
                         // Write to disk
                         simulation->writeToDisk(msg->payload, location->getStorageService()->hostname,
                                                 location->getMountPoint());
-//                    }
+                    }
 
                     // Wait for the comm to finish
                     msg = req->wait();

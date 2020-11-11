@@ -65,31 +65,6 @@ wrench::Workflow *workflow_multithread(int num_pipes, int num_tasks, int core_pe
     return workflow;
 }
 
-void export_output_single(wrench::SimulationOutput output, int num_tasks, std::string filename) {
-    auto read_start = output.getTrace<wrench::SimulationTimestampFileReadStart>();
-    auto read_end = output.getTrace<wrench::SimulationTimestampFileReadCompletion>();
-    auto write_start = output.getTrace<wrench::SimulationTimestampFileWriteStart>();
-    auto write_end = output.getTrace<wrench::SimulationTimestampFileWriteCompletion>();
-    auto task_start = output.getTrace<wrench::SimulationTimestampTaskStart>();
-    auto task_end = output.getTrace<wrench::SimulationTimestampTaskCompletion>();
-
-    FILE *log_file = fopen(filename.c_str(), "w");
-    fprintf(log_file, "type, start, end\n");
-
-    for (int i = 0; i < num_tasks; i++) {
-        std::cerr << "Task " << read_end[i]->getContent()->getTask()->getID()
-                  << " completed at " << task_end[i]->getDate()
-                  << " in " << task_end[i]->getDate() - task_start[i]->getDate()
-                  << std::endl;
-
-
-        fprintf(log_file, "read, %lf, %lf\n", read_start[i]->getDate(), read_end[i]->getDate());
-        fprintf(log_file, "write, %lf, %lf\n", write_start[i]->getDate(), write_end[i]->getDate());
-    }
-
-    fclose(log_file);
-}
-
 void export_output_multi(wrench::SimulationOutput output, int num_tasks, std::string filename) {
     auto read_start = output.getTrace<wrench::SimulationTimestampFileReadStart>();
     auto read_end = output.getTrace<wrench::SimulationTimestampFileReadCompletion>();
@@ -206,22 +181,12 @@ int main(int argc, char **argv) {
     std::cerr << "Simulation done!" << std::endl;
 
     std::string sub_dir = "original/";
-    for (int i = 0; i <= argc; i++) {
-        if (not strcmp(argv[i], "--writeback")) {
-            sub_dir = "pagecache/";
-            break;
-        }
+    if (simulation.isWriteback()) {
+        sub_dir = "pagecache/";
     }
 
-//    export_output_single(simulation.getOutput(), num_task,
-//                         "remote/" + sub_dir + to_string(file_size_gb) + "gb_sim_time.csv");
-//
-//    simulation.getMemoryManagerByHost("storage_host")->export_log(
-//            "remote/" + sub_dir + to_string(file_size_gb) + "gb_sim_mem.csv");
-//
     simulation.getOutput().dumpUnifiedJSON(workflow,
                                            "remote/" + sub_dir + "/dump_" + to_string(no_pipelines) + ".json");
-    export_output_multi(simulation.getOutput(), workflow->getNumberOfTasks(), "remote/" + sub_dir + "timestamp_multi_sim_.csv");
 
     return 0;
 }

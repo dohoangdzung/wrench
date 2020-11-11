@@ -45,8 +45,6 @@ namespace wrench {
 
         double flushLruList(std::vector<Block *> &list, double amount, std::string excluded_filename);
 
-        std::string random_string();
-
     public:
 
         static std::shared_ptr<MemoryManager> initAndStart(Simulation *simulation, s4u_Disk *memory,
@@ -83,8 +81,6 @@ namespace wrench {
 
         simgrid::s4u::IoPtr readToCache(std::string filename, std::shared_ptr<FileLocation> location,
                 double amount, bool async);
-
-        simgrid::s4u::IoPtr readFromCache(std::string filename, bool async);
 
         void readChunkFromCache(std::string filename, double amount);
 
