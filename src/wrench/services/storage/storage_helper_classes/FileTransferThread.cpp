@@ -286,8 +286,14 @@ namespace wrench {
                     // In NFS, write to cache only if the current host not the server host where the file is stored
                     // If the current host is file server, write to disk directly
                     if (Simulation::isWriteback()) {
-                        simulation->writeThroughWithMemoryCache(file, msg->payload, location);
-                        simulation->getMemoryManagerByHost(location->getStorageService()->hostname)->log();
+
+                        bool write_locally = location->getServerStorageService() == nullptr ;
+
+                        if (write_locally) {
+                            simulation->writebackWithMemoryCache(file, msg->payload, location, true);
+                        } else {
+                            simulation->writeThroughWithMemoryCache(file, msg->payload, location);
+                        }
                     } else {
                         // Write to disk
                         simulation->writeToDisk(msg->payload, location->getStorageService()->hostname,

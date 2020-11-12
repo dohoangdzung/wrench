@@ -93,7 +93,11 @@ namespace wrench {
 
                 }
                 for (auto output_file : ready_task->getOutputFiles()) {
-                    file_locations[output_file] = FileLocation::LOCATION(this->server_storage_service);
+                    if (Simulation::isWriteback()) {
+                        file_locations[output_file] = FileLocation::LOCATION(this->server_storage_service, this->server_storage_service);
+                    } else {
+                        file_locations[output_file] = FileLocation::LOCATION(this->server_storage_service);
+                    }
                 }
 
 

@@ -43,9 +43,9 @@ namespace wrench {
 
     /**
      * @brief File location specifier for a storage service's (single) mount point root
-     *
-     * @param ss: a storage service (that has a single mount point)
-     * @param server_ss: a server storage server in NFS that stores the file.
+     * Used in case of NFS with page cache.
+     * @param ss: storage service on the client (whose the page cache that data is written to)
+     * @param server_ss: a server storage service in NFS that stores the file on disk
      * @return a file location specification
      *
      * @throw std::invalid_argument

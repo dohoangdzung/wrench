@@ -888,24 +888,6 @@ namespace wrench {
     }
 
     /**
-     * Helper method to get a StorageService of a host with hostname
-     * @param hostname: name of the host
-     * @return MemoryManager of the host
-     */
-    std::shared_ptr<StorageService> Simulation::getFirstStorageServiceByHost(std::string hostname) {
-        for (const auto &ptr : this->storage_services) {
-            if (strcmp(ptr->getHostname().c_str(), hostname.c_str()) == 0) {
-                return ptr;
-            }
-        }
-        return nullptr;
-    }
-
-    std::set<std::shared_ptr<WMS>> Simulation::getWMSes(){
-        return this->wmses;
-    }
-
-    /**
      * @brief Wrapper for S4U_Simulation hostExists()
      * @param hostname - name of host being queried
      * @return boolean of existence

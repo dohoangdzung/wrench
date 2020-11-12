@@ -139,8 +139,6 @@ namespace wrench {
         void writebackWithMemoryCache(WorkflowFile *file, double n_bytes, std::shared_ptr<FileLocation> location, bool is_dirty);
         void writeThroughWithMemoryCache(WorkflowFile *file, double n_bytes, std::shared_ptr<FileLocation> location);
         MemoryManager* getMemoryManagerByHost(std::string hostname);
-        std::shared_ptr<StorageService> getFirstStorageServiceByHost(std::string hostname);
-        std::set<std::shared_ptr<WMS>> getWMSes();
 
         static double getMemoryCapacity();
         static unsigned long getNumCores();
